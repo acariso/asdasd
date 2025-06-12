@@ -15,97 +15,99 @@
             margin: 0;
             padding: 10px;
             transition: background-color 0.2s ease-out;
-            line-height: 1.5; /* Okunabilirliği artırır */
+            line-height: 1.5;
         }
 
         h2 {
             color: #EEE;
             text-shadow: 1px 1px 2px #333;
-            font-size: 1.8em; /* Daha küçük ekranlarda daha uygun */
+            font-size: 1.8em;
             margin-bottom: 15px;
         }
 
         h3 {
             color: #444;
             margin-bottom: 15px;
-            font-size: 1.2em; /* Daha küçük ekranlarda daha uygun */
-            border-bottom: 1px solid #eee; /* Bölümleri ayırmak için hafif bir çizgi */
+            font-size: 1.2em;
+            border-bottom: 1px solid #eee;
             padding-bottom: 8px;
         }
 
         /* Ana İçerik Kutusu */
         .container {
-            max-width: 400px; /* Maksimum genişlik daraltıldı */
-            margin: 15px auto; /* Üst ve alt boşluk azaltıldı */
+            max-width: 400px;
+            margin: 15px auto;
             background-color: #ffffff;
-            padding: 15px; /* İç boşluk azaltıldı */
-            border-radius: 18px; /* Köşe yuvarlaklığı biraz azaltıldı */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Gölge hafifletildi */
+            padding: 15px;
+            border-radius: 18px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         /* Kontrol Bölümleri */
         .control-section {
-            border: 1px solid #e0e0e0; /* Daha hafif bir çerçeve */
-            border-radius: 10px; /* Köşe yuvarlaklığı azaltıldı */
-            padding: 12px; /* İç boşluk azaltıldı */
-            margin: 15px 0; /* Boşluklar azaltıldı */
-            background-color: #fcfcfc; /* Daha açık arka plan */
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 12px;
+            margin: 15px 0;
+            background-color: #fcfcfc;
         }
 
-        /* Yön Kontrol Izgarası */
-        .direction-checkbox-grid {
+        /* Yön Kontrol Butonları */
+        .direction-buttons-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* 3 sütun düzeni korunuyor */
-            gap: 8px; /* Boşluk azaltıldı */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
             justify-items: center;
             align-items: center;
             margin-bottom: 8px;
         }
 
-        .direction-item {
+        .direction-button {
+            border: none;
+            color: white;
+            padding: 15px 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            border-radius: 10px;
+            min-width: 80px;
+            height: 60px;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 8px; /* İç boşluk azaltıldı */
-            border-radius: 10px; /* Köşe yuvarlaklığı azaltıldı */
-            background-color: #f0f0f0; /* Daha açık arka plan */
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Gölge hafifletildi */
-            width: 80px; /* Öğelerin genişliği daraltıldı */
-            height: 50px; /* Öğelerin yüksekliği daraltıldı */
-            box-sizing: border-box;
-            font-size: 0.9em; /* Yazı boyutu küçültüldü */
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            background-color: #007BFF; /* Mavi tonu */
+            user-select: none;
         }
 
-        .direction-item label {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 3px; /* Boşluk azaltıldı */
-            font-size: 0.9em; /* Yazı boyutu küçültüldü */
+        .direction-button:hover {
+            background-color: #0056b3;
         }
 
-        .direction-item input[type="checkbox"] {
-            transform: scale(1.3); /* Checkbox boyutu biraz küçültüldü */
-            accent-color: #28a745;
-            cursor: pointer;
+        .direction-button:active {
+            transform: scale(0.95);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
         }
 
-        /* DUR Checkbox'ı */
-        #stopCheckboxContainer {
-            grid-column: 2;
-            background-color: #dc3545;
-            color: white;
-            padding: 5px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        /* YENİ: Aktif Buton Stili */
+        .direction-button.active {
+            background-color: #28a745; /* Yeşil tonu */
+            box-shadow: 0 3px 8px rgba(40, 167, 69, 0.4);
         }
 
-        #stopCheckboxContainer label {
-            color: white;
+        /* DUR Butonu Özel Stili */
+        .direction-button.stop-button {
+            background-color: #dc3545; /* Kırmızı tonu */
         }
 
-        #stopCheckboxContainer input[type="checkbox"] {
-            accent-color: #ffc107;
+        .direction-button.stop-button:hover {
+            background-color: #c82333;
+        }
+
+        /* YENİ: Aktif DUR Butonu Stili */
+        .direction-button.stop-button.active {
+            background-color: #28a745; /* DUR butonu aktif olduğunda da yeşil olsun */
+            box-shadow: 0 3px 8px rgba(40, 167, 69, 0.4);
         }
         
         /* Ayarlar Izgarası */
@@ -113,79 +115,82 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px; /* Boşluk azaltıldı */
+            gap: 12px;
         }
 
         .control-item {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 100%; /* Tam genişlik */
-            font-size: 0.95em; /* Yazı boyutu */
+            width: 100%;
+            font-size: 0.95em;
         }
 
         .control-item label {
             font-weight: bold;
-            margin-right: 8px; /* Boşluk azaltıldı */
+            margin-right: 8px;
             color: #333;
         }
 
         .control-item input[type="checkbox"] {
-            transform: scale(1.3); /* Checkbox boyutu */
+            transform: scale(1.3);
             vertical-align: middle;
             cursor: pointer;
-        }
-        #turboCheckbox {
-            accent-color: #28a745;
+            accent-color: #28a745; /* Turbo checkbox rengi */
         }
 
         /* Toggle Butonları (Su Fışkırt gibi) */
         .toggle-button {
             border: none;
             color: white;
-            padding: 8px 12px; /* İç boşluk azaltıldı */
-            font-size: 15px; /* Yazı boyutu küçültüldü */
+            padding: 8px 12px;
+            font-size: 15px;
             cursor: pointer;
-            border-radius: 10px; /* Köşe yuvarlaklığı azaltıldı */
-            min-width: 150px; /* Minimum genişlik ayarlandı */
-            height: 45px; /* Yükseklik ayarlandı */
+            border-radius: 10px;
+            min-width: 150px;
+            height: 45px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: background-color 0.3s ease, transform 0.2s ease;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Gölge hafifletildi */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             user-select: none;
         }
+
         .toggle-button:active {
-            transform: scale(0.96); /* Tıklama efekti */
+            transform: scale(0.96);
         }
+
         .toggle-button.off {
             background-color: #007BFF;
         }
+
         .toggle-button.off:hover {
             background-color: #0056b3;
         }
+
         .toggle-button.on {
             background-color: #28a745;
         }
+
         .toggle-button.on:hover {
             background-color: #218838;
         }
 
         /* Durum Metni */
         #status {
-            margin-top: 8px; /* Boşluk azaltıldı */
-            margin-bottom: 12px; /* Boşluk azaltıldı */
+            margin-top: 8px;
+            margin-bottom: 12px;
             font-weight: bold;
-            font-size: 1em; /* Yazı boyutu ayarlandı */
+            font-size: 1em;
         }
 
         /* Servo Slider */
         .servo-slider-modern-wrapper {
             position: relative;
-            width: 95%; /* Genişlik artırıldı (parent container'a göre) */
-            height: 18px; /* Yükseklik azaltıldı */
-            margin: 20px auto; /* Boşluklar ayarlandı */
+            width: 95%;
+            height: 18px;
+            margin: 20px auto;
             display: flex;
             align-items: center;
         }
@@ -209,7 +214,7 @@
                 var(--slider-segment-line) calc(16.666% - 1px),
                 var(--slider-segment-line) 16.666%
             );
-            border-radius: 9px; /* Köşe yuvarlaklığı azaltıldı */
+            border-radius: 9px;
             overflow: hidden;
             cursor: pointer;
             border: 1px solid var(--slider-border-color);
@@ -245,8 +250,8 @@
         input[type=range]#servoSlider::-moz-range-thumb {
             -moz-appearance: none;
             appearance: none;
-            width: 16px; /* Başparmak boyutu küçültüldü */
-            height: 16px; /* Başparmak boyutu küçültüldü */
+            width: 16px;
+            height: 16px;
             background: #FFFFFF;
             border: 1.5px solid var(--slider-fill-color);
             border-radius: 50%;
@@ -254,7 +259,7 @@
             position: relative;
             z-index: 10;
             box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-            margin-top: calc((18px - 16px) / 2 - 1.5px); /* Yüksekliğe göre dikey hizalama */
+            margin-top: calc((18px - 16px) / 2 - 1.5px);
         }
 
         input[type=range]#servoSlider::-moz-range-progress {
@@ -262,6 +267,7 @@
             height: 100%;
             border-radius: 9px 0 0 9px;
         }
+
         input[type=range]#servoSlider[value="180"]::-moz-range-progress,
         input[type=range]#servoSlider[value="0"]::-moz-range-progress {
             border-radius: 9px;
@@ -269,8 +275,8 @@
 
         /* Servo Değer Ekranı */
         .servo-value-display {
-            margin-top: 10px; /* Boşluk azaltıldı */
-            font-size: 1.05em; /* Yazı boyutu ayarlandı */
+            margin-top: 10px;
+            font-size: 1.05em;
             font-weight: 600;
             color: #343A40;
         }
@@ -281,18 +287,20 @@
             color: white;
             font-weight: 500;
             border: none;
-            padding: 9px 18px; /* İç boşluk azaltıldı */
-            font-size: 14px; /* Yazı boyutu küçültüldü */
+            padding: 9px 18px;
+            font-size: 14px;
             cursor: pointer;
-            border-radius: 7px; /* Köşe yuvarlaklığı azaltıldı */
-            margin-top: 15px; /* Boşluk azaltıldı */
+            border-radius: 7px;
+            margin-top: 15px;
             transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-            box-shadow: 0 2px 5px rgba(220, 53, 69, 0.2); /* Gölge hafifletildi */
+            box-shadow: 0 2px 5px rgba(220, 53, 69, 0.2);
         }
+
         .servo-reset-button:hover {
             background-color: #c82333;
             box-shadow: 0 3px 6px rgba(220, 53, 69, 0.3);
         }
+
         .servo-reset-button:active {
             background-color: #bd2130;
             transform: scale(0.97);
@@ -309,15 +317,15 @@
             background-color: red;
             color: white;
             text-align: center;
-            padding: 8px; /* İç boşluk azaltıldı */
-            font-size: 1.1em; /* Yazı boyutu ayarlandı */
+            padding: 8px;
+            font-size: 1.1em;
             font-weight: bold;
             z-index: 10000;
             box-shadow: 0 1px 4px rgba(0,0,0,0.4);
         }
 
         /* Medya Sorguları - Küçük Ekranlar için Ek İyileştirmeler */
-        @media (max-width: 600px) { /* Telefonlar için genel kural */
+        @media (max-width: 600px) {
             body {
                 padding: 5px;
             }
@@ -328,7 +336,7 @@
                 font-size: 1.1em;
             }
             .container {
-                width: 95%; /* Daha fazla ekran alanı kullan */
+                width: 95%;
                 margin: 10px auto;
                 padding: 12px;
             }
@@ -336,21 +344,15 @@
                 padding: 10px;
                 margin: 12px 0;
             }
-            .direction-checkbox-grid {
-                grid-template-columns: repeat(3, 1fr); /* 3 sütun korunur, öğe boyutları ayarlandı */
+            .direction-buttons-grid {
+                grid-template-columns: repeat(3, 1fr);
                 gap: 6px;
             }
-            .direction-item {
-                width: 70px; /* Daha da daraltıldı */
-                height: 45px; /* Daha da küçültüldü */
-                font-size: 0.85em;
-                padding: 6px;
-            }
-            .direction-item label {
-                font-size: 0.85em;
-            }
-            .direction-item input[type="checkbox"] {
-                transform: scale(1.2);
+            .direction-button {
+                width: 70px;
+                height: 50px;
+                font-size: 1em;
+                padding: 8px;
             }
             .toggle-button {
                 font-size: 14px;
@@ -376,35 +378,35 @@
             }
         }
 
-        @media (max-width: 400px) { /* Çok küçük telefonlar için son dokunuşlar */
+        @media (max-width: 400px) {
             .container {
-                width: 98%; /* Çok dar ekranlarda tam genişlik */
+                width: 98%;
                 margin: 8px auto;
                 padding: 10px;
             }
-            .direction-checkbox-grid {
-                grid-template-columns: repeat(2, 1fr); /* 2 sütun düzenine geçiş */
+            .direction-buttons-grid {
+                grid-template-columns: repeat(2, 1fr);
                 gap: 5px;
             }
-            .direction-item {
-                width: 100px; /* Genişlikleri tekrar artırıldı çünkü 2 sütun var */
-                height: 50px;
-                font-size: 0.9em;
+            .direction-button {
+                width: 100px;
+                height: 55px;
+                font-size: 1em;
                 padding: 8px;
             }
-            .empty { /* Grid boşluklarını yönetmek için */
-                display: none; /* Boş öğeleri gizle */
+            .empty {
+                display: none;
             }
-            #stopCheckboxContainer {
-                grid-column: span 2; /* DUR butonu 2 sütunu kapsasın */
-                width: 100%; /* Kendi satırında tam genişlik */
+            #stopButton {
+                grid-column: span 2;
+                width: 100%;
                 margin: 0;
-                height: 50px;
+                height: 55px;
                 box-sizing: border-box;
             }
             .toggle-button {
-                min-width: unset; /* Minimum genişlik kaldırıldı */
-                width: 90%; /* Yüzdelik genişlik kullan */
+                min-width: unset;
+                width: 90%;
                 font-size: 13px;
                 height: 38px;
             }
@@ -431,29 +433,19 @@
 
         <div class="control-section">
             <h3>Yön Kontrolleri</h3>
-            <div class="direction-checkbox-grid">
-                <div class="empty"></div> <div class="direction-item">
-                    <label for="ileriCheckbox">İleri</label>
-                    <input type="checkbox" id="ileriCheckbox" name="direction">
-                </div>
-                <div class="empty"></div> <div class="direction-item">
-                    <label for="solCheckbox">Sol</label>
-                    <input type="checkbox" id="solCheckbox" name="direction">
-                </div>
-                <div id="stopCheckboxContainer" class="direction-item">
-                    <label for="durCheckbox">DUR</label>
-                    <input type="checkbox" id="durCheckbox" name="direction" checked>
-                </div>
-                <div class="direction-item">
-                    <label for="sagCheckbox">Sağ</label>
-                    <input type="checkbox" id="sagCheckbox" name="direction">
-                </div>
+            <div class="direction-buttons-grid">
+                <div class="empty"></div> 
+                <button id="ileriButton" class="direction-button" data-command="b">İleri</button>
+                <div class="empty"></div> 
+                
+                <button id="solButton" class="direction-button" data-command="c">Sol</button>
+                <button id="stopButton" class="direction-button stop-button" data-command="S">DUR</button>
+                <button id="sagButton" class="direction-button" data-command="d">Sağ</button>
 
-                <div class="empty"></div> <div class="direction-item">
-                    <label for="geriCheckbox">Geri</label>
-                    <input type="checkbox" id="geriCheckbox" name="direction">
-                </div>
-                <div class="empty"></div> </div>
+                <div class="empty"></div> 
+                <button id="geriButton" class="direction-button" data-command="a">Geri</button>
+                <div class="empty"></div> 
+            </div>
         </div>
 
         <div class="control-section">
@@ -480,7 +472,8 @@
     </div>
     <script>
         const statusElement = document.getElementById('status');
-        const brokerUrl = 'wss://36288b3a8cbb4d6f85c7ab5b43dc30db.s1.eu.hivemq.cloud:8884/mqtt';
+        // IMPORTANT: Replace with your actual MQTT broker URL, Client ID, Username, and Password
+        const brokerUrl = 'wss://36288b3a8cbb4d6f85c7ab5b43dc30db.s1.eu.hivemq.cloud:8884/mqtt'; 
         const options = {
             clientId: 'WebRobotControl_' + Date.now(),
             username: 'hberks',
@@ -497,6 +490,7 @@
         let fireFlashInterval = null;
         let isBodyFlashingRed = false;
         const originalBodyBgColor = '#808080';
+        let currentDirectionButton = null; // Currently active direction button
 
         function connectToBroker() {
             updateStatus('Bağlanılıyor...', 'orange');
@@ -515,7 +509,8 @@
                         }
                     });
                     setupEventHandlers();
-                    // Ensure DUR is sent on initial load
+                    // Ensure DUR is sent on initial load and button is highlighted
+                    activateDirectionButton(document.getElementById('stopButton'));
                     sendCommand("S");
                 });
                 client.on('error', function (err) {
@@ -599,45 +594,30 @@
             isBodyFlashingRed = false;
         }
 
-        function setupDirectionCheckboxes() {
-            const checkboxes = document.querySelectorAll('input[name="direction"]');
-            const commandMap = {
-                'ileriCheckbox': 'b',
-                'geriCheckbox': 'a',
-                'solCheckbox': 'c',
-                'sagCheckbox': 'd',
-                'durCheckbox': 'S'
-            };
+        // --- YÖN KONTROLÜ FONKSİYONLARI ---
+        function activateDirectionButton(button) {
+            // Önceki aktif butondan 'active' sınıfını kaldır
+            if (currentDirectionButton) {
+                currentDirectionButton.classList.remove('active');
+            }
+            // Yeni butona 'active' sınıfını ekle
+            button.classList.add('active');
+            // 'currentDirectionButton' değişkenini güncelle
+            currentDirectionButton = button;
+        }
 
-            checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    if (this.checked) {
-                        // Uncheck all other checkboxes in the same group
-                        checkboxes.forEach(otherCheckbox => {
-                            if (otherCheckbox !== this && otherCheckbox.name === this.name) {
-                                otherCheckbox.checked = false;
-                            }
-                        });
-                        sendCommand(commandMap[this.id]);
-                    } else {
-                        // If a checkbox is unchecked manually, send STOP command and check DUR
-                        sendCommand("S");
-                        document.getElementById('durCheckbox').checked = true;
-                    }
+        function setupDirectionButtons() {
+            const directionButtons = document.querySelectorAll('.direction-button');
+            directionButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const command = this.dataset.command;
+                    sendCommand(command);
+                    console.log(`Komut gönderildi: ${command}`);
+                    activateDirectionButton(this); // Tıklanan butonu aktif yap
                 });
             });
-
-            // Ensure only one is checked on load, default to DUR
-            const durCheckbox = document.getElementById('durCheckbox');
-            if (durCheckbox) {
-                durCheckbox.checked = true;
-                checkboxes.forEach(otherCheckbox => {
-                    if (otherCheckbox !== durCheckbox && otherCheckbox.name === durCheckbox.name) {
-                        otherCheckbox.checked = false;
-                    }
-                });
-            }
         }
+        // --- YÖN KONTROLÜ FONKSİYONLARI SONU ---
 
         function setupServoSlider() {
             const slider = document.getElementById('servoSlider');
@@ -656,18 +636,18 @@
                 }
                 display.textContent = prefix + displayValue + '°';
             }
-            updateDisplay(slider.value);
+            updateDisplay(slider.value); // Set initial display value
             slider.addEventListener('input', function() {
                 updateDisplay(this.value);
             });
             slider.addEventListener('change', function() {
                 const angle = this.value;
-                sendCommand('X' + angle);
+                sendCommand('X' + angle); // Send servo command
             });
             resetButton.addEventListener('click', function() {
-                slider.value = 90;
+                slider.value = 90; // Reset to 90 degrees
                 updateDisplay(slider.value);
-                sendCommand('X90');
+                sendCommand('X90'); // Send reset command
             });
         }
 
@@ -675,7 +655,7 @@
             var turboCheck = document.getElementById('turboCheckbox');
             if (!turboCheck) return;
             turboCheck.addEventListener('change', function () {
-                const cmd = this.checked ? 'T' : 'N';
+                const cmd = this.checked ? 'T' : 'N'; // T for Turbo, N for Normal
                 sendCommand(cmd);
                 console.log("Turbo modu: " + (this.checked ? 'Aktif' : 'Kapalı'));
             });
@@ -685,14 +665,14 @@
             const suPompasibuton = document.getElementById('suPompasibuton');
             if (!suPompasibuton) return;
 
-            isWaterPumpOn = false; 
+            isWaterPumpOn = false; // Initialize state
             suPompasibuton.textContent = 'Su Fışkırt: Kapalı';
             suPompasibuton.classList.remove('on');
             suPompasibuton.classList.add('off');
 
             suPompasibuton.addEventListener('click', function() {
-                isWaterPumpOn = !isWaterPumpOn; 
-                const cmd = isWaterPumpOn ? 'w' : 'W'; 
+                isWaterPumpOn = !isWaterPumpOn; // Toggle state
+                const cmd = isWaterPumpOn ? 'w' : 'W'; // 'w' to turn on, 'W' to turn off
                 sendCommand(cmd);
                 console.log("Su Fışkırtma: " + (isWaterPumpOn ? 'Aktif' : 'Kapalı'));
 
@@ -710,50 +690,52 @@
 
         function setupKlavye() {
             document.addEventListener("keydown", function (event) {
+                // Ignore key events if an input field or slider is focused
                 if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.type === 'range') {
                     return;
                 }
+                // Prevent continuous commands on key hold
                 if (event.repeat) return;
 
-                let targetCheckbox = null;
+                let targetButton = null;
 
                 switch (event.key.toLowerCase()) {
-                    case "w": targetCheckbox = document.getElementById('ileriCheckbox'); break; 
-                    case "s": targetCheckbox = document.getElementById('geriCheckbox'); break; 
-                    case "a": targetCheckbox = document.getElementById('solCheckbox'); break; 
-                    case "d": targetCheckbox = document.getElementById('sagCheckbox'); break; 
-                    case " ": targetCheckbox = document.getElementById('durCheckbox'); break;
-                    case "t":
+                    case "w": targetButton = document.getElementById('ileriButton'); break; 
+                    case "s": targetButton = document.getElementById('geriButton'); break; 
+                    case "a": targetButton = document.getElementById('solButton'); break; 
+                    case "d": targetButton = document.getElementById('sagButton'); break; 
+                    case " ": targetButton = document.getElementById('stopButton'); break; // Spacebar for stop
+                    case "t": // Toggle Turbo mode
                         var turboCheck = document.getElementById('turboCheckbox');
                         if(turboCheck) {
                             turboCheck.checked = !turboCheck.checked;
-                            turboCheck.dispatchEvent(new Event('change'));
+                            turboCheck.dispatchEvent(new Event('change')); // Trigger the change event
                         }
                         break;
-                    case "r":
+                    case "r": // Reset Servo
                         const resetButton = document.getElementById('servoResetButton');
                         if (resetButton) {
-                            resetButton.click();
+                            resetButton.click(); // Simulate click on reset button
                         }
                         break;
-                    case "f":
+                    case "f": // Toggle Water Pump
                         const suPompasibuton = document.getElementById('suPompasibuton');
                         if(suPompasibuton){
-                            suPompasibuton.click();
+                            suPompasibuton.click(); // Simulate click on water pump button
                         }
                         break;
                 }
 
-                if (targetCheckbox) {
-                    targetCheckbox.checked = true;
-                    targetCheckbox.dispatchEvent(new Event('change')); // Trigger the change event
+                // If a key corresponds to a direction button, simulate a click
+                if (targetButton) {
+                    targetButton.click(); 
                 }
             });
         }
 
         function setupEventHandlers() {
             console.log("Olay dinleyicileri ayarlanıyor...");
-            setupDirectionCheckboxes();
+            setupDirectionButtons();
             setupServoSlider();
             setupTurboCheckbox();
             setupsuPompasibuton();
@@ -764,7 +746,7 @@
         window.onload = function () {
             console.log("Sayfa yüklendi. MQTT bağlantısı başlatılıyor...");
             fireAlarmElement = document.getElementById('fireAlarm');
-            stopFireAlarmVisuals();
+            stopFireAlarmVisuals(); // Ensure alarm is hidden on load
             connectToBroker();
         };
     </script>

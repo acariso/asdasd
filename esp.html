@@ -1,754 +1,476 @@
-<!DOCTYPE html>
-<html lang="tr">
-
-<head>
+<html lang="tr"><head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <title>Wifi Robot Kontrol (MQTT)</title>
     <style>
-        /* Genel Stil Ayarları */
+        /* Modern koyu arka plan ve kart */
         body {
-            background-color: #808080;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            text-align: center;
-            color: #333;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            font-family: 'Segoe UI', sans-serif;
+            color: #f1f1f1;
             margin: 0;
-            padding: 10px;
-            transition: background-color 0.2s ease-out;
-            line-height: 1.5;
+            padding: 20px;
+            text-align: center;
         }
-
-        h2 {
-            color: #EEE;
-            text-shadow: 1px 1px 2px #333;
-            font-size: 1.8em;
-            margin-bottom: 15px;
-        }
-
-        h3 {
-            color: #444;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 8px;
-        }
-
-        /* Ana İçerik Kutusu */
         .container {
-            max-width: 400px;
-            margin: 15px auto;
-            background-color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            margin: 0 auto;
+            backdrop-filter: blur(10px);
+        }
+        h2 {
+            font-size: 1.8em;
+            color: #00ffcc;
+            text-shadow: 1px 1px 5px #000;
+            margin-bottom: 10px;
+        }
+        h3 {
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 5px;
+            margin-top: 30px;
+            color: #ffffff;
+        }
+        /* Butonlar ve geçiş efektleri */
+        .button {
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            border: none;
+            color: white;
             padding: 15px;
-            border-radius: 18px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Kontrol Bölümleri */
-        .control-section {
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 12px;
-            margin: 15px 0;
-            background-color: #fcfcfc;
-        }
-
-        /* Yön Kontrol Butonları */
-        .direction-buttons-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            justify-items: center;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .direction-button {
-            border: none;
-            color: white;
-            padding: 15px 10px;
-            font-size: 1.1em;
+            font-size: 18px;
             cursor: pointer;
-            border-radius: 10px;
-            min-width: 80px;
+            border-radius: 12px;
+            width: 100px;
             height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            background-color: #007BFF; /* Mavi tonu */
-            user-select: none;
+            transition: 0.3s ease all;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         }
-
-        .direction-button:hover {
-            background-color: #0056b3;
+        .button:hover {
+            transform: scale(1.05);
         }
-
-        .direction-button:active {
-            transform: scale(0.95);
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        #dur {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
         }
-
-        /* YENİ: Aktif Buton Stili */
-        .direction-button.active {
-            background-color: #28a745; /* Yeşil tonu */
-            box-shadow: 0 3px 8px rgba(40, 167, 69, 0.4);
-        }
-
-        /* DUR Butonu Özel Stili */
-        .direction-button.stop-button {
-            background-color: #dc3545; /* Kırmızı tonu */
-        }
-
-        .direction-button.stop-button:hover {
-            background-color: #c82333;
-        }
-
-        /* YENİ: Aktif DUR Butonu Stili */
-        .direction-button.stop-button.active {
-            background-color: #28a745; /* DUR butonu aktif olduğunda da yeşil olsun */
-            box-shadow: 0 3px 8px rgba(40, 167, 69, 0.4);
-        }
-        
-        /* Ayarlar Izgarası */
-        .settings-grid {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .control-item {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            font-size: 0.95em;
-        }
-
-        .control-item label {
-            font-weight: bold;
-            margin-right: 8px;
-            color: #333;
-        }
-
-        .control-item input[type="checkbox"] {
-            transform: scale(1.3);
-            vertical-align: middle;
-            cursor: pointer;
-            accent-color: #28a745; /* Turbo checkbox rengi */
-        }
-
-        /* Toggle Butonları (Su Fışkırt gibi) */
-        .toggle-button {
-            border: none;
-            color: white;
-            padding: 8px 12px;
-            font-size: 15px;
-            cursor: pointer;
-            border-radius: 10px;
-            min-width: 150px;
-            height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            user-select: none;
-        }
-
-        .toggle-button:active {
-            transform: scale(0.96);
-        }
-
-        .toggle-button.off {
-            background-color: #007BFF;
-        }
-
-        .toggle-button.off:hover {
-            background-color: #0056b3;
-        }
-
         .toggle-button.on {
-            background-color: #28a745;
+            background: linear-gradient(to right, #00b09b, #96c93d);
         }
-
-        .toggle-button.on:hover {
-            background-color: #218838;
+        .toggle-button.off {
+            background: linear-gradient(to right, #4776e6, #8e54e9);
         }
-
-        /* Durum Metni */
-        #status {
-            margin-top: 8px;
-            margin-bottom: 12px;
-            font-weight: bold;
-            font-size: 1em;
-        }
-
-        /* Servo Slider */
+        /* Servo slider modern ve dolgu efekti */
         .servo-slider-modern-wrapper {
             position: relative;
-            width: 95%;
-            height: 18px;
-            margin: 20px auto;
-            display: flex;
-            align-items: center;
+            width: 90%;
+            margin: 30px auto;
+            height: 12px;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
         }
-
         input[type=range]#servoSlider {
-            -webkit-appearance: none;
             appearance: none;
-            --slider-fill-color: #28a745;
-            --slider-track-bg: #F0F0F7;
-            --slider-segment-line: #D1D1D6;
-            --slider-border-color: #C7C7CC;
+            -webkit-appearance: none;
             width: 100%;
             height: 100%;
-            margin: 0;
-            padding: 0;
-            background-color: transparent;
-            background-image: repeating-linear-gradient(
-                to right,
-                var(--slider-track-bg),
-                var(--slider-track-bg) calc(16.666% - 1px),
-                var(--slider-segment-line) calc(16.666% - 1px),
-                var(--slider-segment-line) 16.666%
-            );
-            border-radius: 9px;
-            overflow: hidden;
-            cursor: pointer;
-            border: 1px solid var(--slider-border-color);
-            box-shadow: inset 0 0.5px 1px rgba(0,0,0,0.05);
-        }
-
-        input[type=range]#servoSlider::-webkit-slider-runnable-track {
-            -webkit-appearance: none;
-            height: 100%;
             background: transparent;
-            border-radius: 9px;
+            position: relative;
+            z-index: 2;
         }
-
         input[type=range]#servoSlider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
-            width: 1px;
-            height: 100%;
-            background: transparent;
-            border: none;
-            box-shadow: -450px 0 0 450px var(--slider-fill-color);
-            cursor: pointer;
-        }
-
-        input[type=range]#servoSlider::-moz-range-track {
-            width: 100%;
-            height: 100%;
-            background: transparent;
-            border-radius: 9px;
-            border: none;
-        }
-
-        input[type=range]#servoSlider::-moz-range-thumb {
-            -moz-appearance: none;
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            background: #FFFFFF;
-            border: 1.5px solid var(--slider-fill-color);
+            height: 24px;
+            width: 24px;
+            background: #00ffcc;
             border-radius: 50%;
+            box-shadow: 0 0 6px rgba(0,255,204,0.7);
             cursor: pointer;
             position: relative;
-            z-index: 10;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-            margin-top: calc((18px - 16px) / 2 - 1.5px);
+            z-index: 3;
         }
-
-        input[type=range]#servoSlider::-moz-range-progress {
-            background-color: var(--slider-fill-color);
-            height: 100%;
-            border-radius: 9px 0 0 9px;
-        }
-
-        input[type=range]#servoSlider[value="180"]::-moz-range-progress,
-        input[type=range]#servoSlider[value="0"]::-moz-range-progress {
-            border-radius: 9px;
-        }
-
-        /* Servo Değer Ekranı */
-        .servo-value-display {
-            margin-top: 10px;
-            font-size: 1.05em;
-            font-weight: 600;
-            color: #343A40;
-        }
-
-        /* Servo Sıfırlama Butonu */
-        .servo-reset-button {
-            background-color: #dc3545;
-            color: white;
-            font-weight: 500;
-            border: none;
-            padding: 9px 18px;
-            font-size: 14px;
+        input[type=range]#servoSlider::-moz-range-thumb {
+            height: 24px;
+            width: 24px;
+            background: #00ffcc;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(0,255,204,0.7);
             cursor: pointer;
-            border-radius: 7px;
-            margin-top: 15px;
-            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-            box-shadow: 0 2px 5px rgba(220, 53, 69, 0.2);
+            position: relative;
+            z-index: 3;
         }
-
-        .servo-reset-button:hover {
-            background-color: #c82333;
-            box-shadow: 0 3px 6px rgba(220, 53, 69, 0.3);
+        input[type=range]#servoSlider::-ms-thumb {
+            height: 24px;
+            width: 24px;
+            background: #00ffcc;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(0,255,204,0.7);
+            cursor: pointer;
+            position: relative;
+            z-index: 3;
         }
-
-        .servo-reset-button:active {
-            background-color: #bd2130;
-            transform: scale(0.97);
-            box-shadow: 0 1px 3px rgba(220, 53, 69, 0.1);
-        }
-
-        /* Yangın Alarmı */
-        #fireAlarm {
-            display: none;
-            position: fixed;
+        /* Dolgu efekti için pseudo-element */
+        .servo-slider-modern-wrapper::before {
+            content: '';
+            position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            background-color: red;
-            color: white;
-            text-align: center;
-            padding: 8px;
-            font-size: 1.1em;
-            font-weight: bold;
-            z-index: 10000;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+            height: 100%;
+            background: linear-gradient(to right, #00ffcc, #0072ff);
+            z-index: 1;
+            width: 0%;
+            transition: width 0.3s;
         }
-
-        /* Medya Sorguları - Küçük Ekranlar için Ek İyileştirmeler */
-        @media (max-width: 600px) {
-            body {
-                padding: 5px;
-            }
-            h2 {
-                font-size: 1.6em;
-            }
-            h3 {
-                font-size: 1.1em;
-            }
-            .container {
-                width: 95%;
-                margin: 10px auto;
-                padding: 12px;
-            }
-            .control-section {
-                padding: 10px;
-                margin: 12px 0;
-            }
-            .direction-buttons-grid {
-                grid-template-columns: repeat(3, 1fr);
-                gap: 6px;
-            }
-            .direction-button {
-                width: 70px;
-                height: 50px;
-                font-size: 1em;
-                padding: 8px;
-            }
-            .toggle-button {
-                font-size: 14px;
-                min-width: 140px;
-                height: 40px;
-            }
-            .servo-slider-modern-wrapper {
-                height: 16px;
-            }
-            input[type=range]#servoSlider::-moz-range-thumb {
-                width: 14px;
-                height: 14px;
-                margin-top: calc((16px - 14px) / 2 - 1.5px);
-            }
-            .servo-reset-button {
-                padding: 8px 16px;
-                font-size: 13px;
-                margin-top: 12px;
-            }
-            #fireAlarm {
-                padding: 6px;
-                font-size: 1em;
-            }
-        }
-
-        @media (max-width: 400px) {
-            .container {
-                width: 98%;
-                margin: 8px auto;
-                padding: 10px;
-            }
-            .direction-buttons-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 5px;
-            }
-            .direction-button {
-                width: 100px;
-                height: 55px;
-                font-size: 1em;
-                padding: 8px;
-            }
-            .empty {
-                display: none;
-            }
-            #stopButton {
-                grid-column: span 2;
-                width: 100%;
-                margin: 0;
-                height: 55px;
-                box-sizing: border-box;
-            }
-            .toggle-button {
-                min-width: unset;
-                width: 90%;
-                font-size: 13px;
-                height: 38px;
-            }
-            .servo-slider-modern-wrapper {
-                width: 98%;
-                height: 14px;
-            }
-            input[type=range]#servoSlider::-moz-range-thumb {
-                width: 12px;
-                height: 12px;
-                margin-top: calc((14px - 12px) / 2 - 1.5px);
-            }
-        }
+        /* Diğer stiller (değişmeden bırakıldı) */
+        .button-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; justify-items: center; align-items: center; margin-bottom: 10px; }
+        .button:active { transform: scale(0.9); }
+        .button:disabled { background-color: #a0a0a0 !important; cursor: not-allowed; opacity: 0.6; }
+        .bcolor { background-color: #28a745; }
+        .bcolor:hover:not(:disabled) { background-color: #218838; }
+        #dur:hover:not(:disabled) { background-color: #c82333; }
+        .control-section { border: 1px solid #ccc; border-radius: 12px; padding: 15px; margin: 20px 0; background-color: rgba(255,255,255,0.07); }
+        .settings-grid { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .control-item { display: flex; align-items: center; justify-content: center; width: 100%; }
+        .control-item label { font-weight: bold; margin-right: 10px; color: #eee; }
+        .control-item input[type="checkbox"] { transform: scale(1.5); vertical-align: middle; cursor: pointer; }
+        #turboCheckbox { accent-color: #28a745; }
+        .toggle-button { border: none; color: white; padding: 10px 15px; font-size: 16px; cursor: pointer; border-radius: 12px; min-width: 180px; height: 50px; display: flex; align-items: center; justify-content: center; transition: background-color 0.3s ease, transform 0.2s ease; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3); user-select: none; }
+        .toggle-button:active { transform: scale(0.95); }
+        #status { margin-top: 10px; margin-bottom: 15px; font-weight: bold; font-size: 1.1em; }
+        .servo-value-display { margin-top: 12px; font-size: 1.15em; font-weight: 600; color: #00ffcc; }
+        .servo-reset-button { background-color: #dc3545; color: white; font-weight: 500; border: none; padding: 10px 20px; font-size: 15px; cursor: pointer; border-radius: 8px; margin-top: 18px; transition: background-color 0.2s ease; box-shadow: 0 3px 6px rgba(220, 53, 69, 0.3); }
+        .fire-alarm { display: none; position: fixed; top: 0; left: 0; width: 100%; background-color: red; color: white; text-align: center; padding: 10px; font-size: 1.2em; font-weight: bold; z-index: 10000; }
+        .modal-overlay { display: none; position: fixed; z-index: 20000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center;}
+        .modal-content { background-color: #222; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .modal-content p { font-size: 1.1em; margin-bottom: 20px; }
+        .modal-button { border: none; color: white; padding: 12px 24px; text-align: center; font-size: 16px; margin: 4px 10px; cursor: pointer; border-radius: 8px; }
+        #confirmBtn { background-color: #28a745; }
+        #cancelBtn { background-color: #dc3545; }
+        .notification { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: #333; color: white; padding: 15px; border-radius: 8px; z-index: 30000; }
+        .debug-info { margin-top: 10px; padding: 10px; background-color: #222; border-radius: 5px; font-size: 12px; color: #aaa; }
     </style>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
-
 <body>
-    <div id="fireAlarm">DİKKAT: YANGIN ALGILANDI!</div>
+    <div id="fireAlarm" class="fire-alarm" style="display: none;">DİKKAT: YANGIN ALGILANDI!</div>
+    <div id="notification" class="notification"></div>
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal-content">
+            <p id="modalText"></p>
+            <button id="confirmBtn" class="modal-button">Devam Et</button>
+            <button id="cancelBtn" class="modal-button">İptal</button>
+        </div>
+    </div>
     <div class="container">
         <h2>Wifi Robot Kontrol (MQTT)</h2>
-
-        <div id="status" style="color: orange;">Durum: Bağlanılıyor...</div>
-
+        <div id="status" style="color: green;">Durum: Bağlandı!</div>
+        
+        <!-- Debug bilgileri için -->
+        <div id="debugInfo" class="debug-info">[14:39:35] Komut gönderildi: robot/control = X90</div>
+        
         <div class="control-section">
-            <h3>Yön Kontrolleri</h3>
-            <div class="direction-buttons-grid">
-                <div class="empty"></div> 
-                <button id="ileriButton" class="direction-button" data-command="b">İleri</button>
-                <div class="empty"></div> 
-                
-                <button id="solButton" class="direction-button" data-command="c">Sol</button>
-                <button id="stopButton" class="direction-button stop-button" data-command="S">DUR</button>
-                <button id="sagButton" class="direction-button" data-command="d">Sağ</button>
-
-                <div class="empty"></div> 
-                <button id="geriButton" class="direction-button" data-command="a">Geri</button>
-                <div class="empty"></div> 
+            <h3>Yön Tuşları</h3>
+            <div class="button-grid">
+                <div class="empty"></div><button id="ileri" class="button bcolor">İleri</button><div class="empty"></div>
+                <button id="sol" class="button bcolor">Sol</button><button id="dur" class="button bcolor">DUR</button><button id="sag" class="button bcolor">Sağ</button>
+                <div class="empty"></div><button id="geri" class="button bcolor">Geri</button><div class="empty"></div>
             </div>
         </div>
-
         <div class="control-section">
             <h3>Servo Kontrol</h3>
-            <div class="servo-slider-modern-wrapper">
-                <input type="range" id="servoSlider" min="0" max="180" value="90" step="30">
-            </div>
+            <div class="servo-slider-modern-wrapper" style="--servo-fill: 50%; --servo-fill-width: 50%; width: 90%; position: relative; overflow: hidden; --fill-width: 50%;"><input type="range" id="servoSlider" min="0" max="180" value="90" step="15" style="--servo-value: 50;"></div>
             <span id="servoValueDisplay" class="servo-value-display">0°</span>
             <button id="servoResetButton" class="servo-reset-button">Sıfırla</button>
         </div>
-
         <div class="control-section">
-            <h3>Ayarlar & Ek Kontroller</h3>
+            <h3>Ayarlar &amp; Ek Kontroller</h3>
             <div class="settings-grid">
-                <div class="control-item">
-                    <label for="turboCheckbox">Turbo Modu:</label>
-                    <input type="checkbox" id="turboCheckbox">
-                </div>
-                <div class="control-item">
-                    <button id="suPompasibuton" class="toggle-button off">Su Fışkırt: Kapalı</button>
-                </div>
+                 <div class="control-item"><button id="autoModeButton" class="toggle-button off">Otomatik Mod: Kapalı</button></div>
+                <div class="control-item"><label for="turboCheckbox">Turbo Modu:</label><input type="checkbox" id="turboCheckbox"></div>
+                <div class="control-item"><button id="suPompasibuton" class="toggle-button off">Su Pompası: Kapalı</button></div>
             </div>
         </div>
     </div>
     <script>
         const statusElement = document.getElementById('status');
-        // IMPORTANT: Replace with your actual MQTT broker URL, Client ID, Username, and Password
-        const brokerUrl = 'wss://36288b3a8cbb4d6f85c7ab5b43dc30db.s1.eu.hivemq.cloud:8884/mqtt'; 
-        const options = {
-            clientId: 'WebRobotControl_' + Date.now(),
-            username: 'hberks',
-            password: 'Berk0808',
-            clean: true,
-            connectTimeout: 5000
-        };
-        const robotTopic = 'robot/control';
-        const alarmTopic = 'robot/alarm';
+        const debugElement = document.getElementById('debugInfo');
+        const brokerUrl = 'wss://36288b3a8cbb4d6f85c7ab5b43dc30db.s1.eu.hivemq.cloud:8884/mqtt';
+        const options = { clientId: 'WebRobotControl_' + Date.now(), username: 'hberks', password: 'Berk0808', clean: true, connectTimeout: 5000 };
+        const robotControlTopic = 'robot/control';
+        const robotModeTopic = 'robot/mode';
+        const alarmTopicWildcard = 'robot/alarm/#';
+        const statusTopicWildcard = 'robot/status/#';
+        const actionPromptTopic = 'robot/action_prompt';
+        const actionResponseTopic = 'robot/action_response';
+        const notificationTopic = 'robot/notification';
 
         let client = null;
-        let isWaterPumpOn = false;
-        let fireAlarmElement = null;
-        let fireFlashInterval = null;
-        let isBodyFlashingRed = false;
-        const originalBodyBgColor = '#808080';
-        let currentDirectionButton = null; // Currently active direction button
+        let fireStates = { center: false, left: false, right: false };
+        let modalTimeout = null;
+        let countdownInterval = null;
+        let actionPromptShown = false;
+        let fireDismissed = false;
+        let dismissCooldownTimer = null;
+        
+        const servoSlider = document.getElementById('servoSlider');
+        const servoDisplay = document.getElementById('servoValueDisplay');
+        const pumpButton = document.getElementById('suPompasibuton');
+        const fireAlarmBanner = document.getElementById('fireAlarm');
+
+        // Su pompası durumu için debug fonksiyonu
+        function debugLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugElement.textContent = `[${timestamp}] ${message}`;
+            console.log(`[${timestamp}] ${message}`);
+        }
 
         function connectToBroker() {
             updateStatus('Bağlanılıyor...', 'orange');
-            console.log(`MQTT Broker'a bağlanılıyor: ${brokerUrl}`);
+            debugLog('MQTT bağlantısı kuruluyor...');
             try {
                 client = mqtt.connect(brokerUrl, options);
-                client.on('connect', function () {
+                client.on('connect', () => {
                     updateStatus('Bağlandı!', 'green');
-                    console.log('MQTT Broker\'a başarıyla bağlandı.');
+                    debugLog('MQTT bağlandı, topic\'lere abone oluyor...');
+                    client.subscribe(alarmTopicWildcard);
+                    client.subscribe(actionPromptTopic);
+                    client.subscribe(statusTopicWildcard);
+                    client.subscribe(notificationTopic);
                     
-                    client.subscribe(alarmTopic, function (err) {
-                        if (err) {
-                            console.error(`Abone olma hatası ${alarmTopic}:`, err);
-                        } else {
-                            console.log(`'${alarmTopic}' konusuna abone olundu.`);
-                        }
-                    });
+                    // Bağlantı kurulduktan sonra mevcut durumları ESP8266'dan iste
+                    setTimeout(() => {
+                        debugLog('ESP8266\'dan mevcut durum bilgileri isteniyor...');
+                        // ESP8266'ya durum sorgusu gönder
+                        client.publish('robot/query', 'STATUS_REQUEST');
+                    }, 2000);
+                    
                     setupEventHandlers();
-                    // Ensure DUR is sent on initial load and button is highlighted
-                    activateDirectionButton(document.getElementById('stopButton'));
-                    sendCommand("S");
                 });
-                client.on('error', function (err) {
+                client.on('error', (err) => {
                     updateStatus('Bağlantı Hatası!', 'red');
-                    console.error('MQTT Bağlantı Hatası: ', err);
-                    if (client && client.end) client.end(true);
-                    stopFireAlarmVisuals();
+                    debugLog('MQTT Hatası: ' + err.message);
                 });
-                client.on('close', function () {
+                client.on('close', () => {
                     updateStatus('Bağlantı Kesildi.', 'gray');
-                    console.log('MQTT Bağlantısı kapandı.');
-                    stopFireAlarmVisuals();
+                    debugLog('MQTT bağlantısı kesildi');
                 });
-                client.on('offline', function () {
-                    updateStatus('Çevrimdışı.', 'gray');
-                    console.log('MQTT İstemcisi çevrimdışı.');
-                    stopFireAlarmVisuals();
-                });
-                client.on('message', function (topic, message) {
+                client.on('message', (topic, message) => {
                     const msgString = message.toString();
-                    console.log(`Mesaj Alındı [${topic}]: ${msgString}`);
-                    if (topic === alarmTopic) {
-                        handleFireAlarm(msgString);
+                    const topicParts = topic.split('/');
+
+                    debugLog(`Mesaj alındı: ${topic} = ${msgString}`);
+
+                    if (topicParts[1] === 'alarm') {
+                        handleFireAlarm(topicParts[2], msgString);
+                    } else if (topic === actionPromptTopic) {
+                        if (!fireDismissed) {
+                            showConfirmationModal();
+                        } else {
+                            debugLog("Kullanıcı iptal etti, action_prompt gösterilmeyecek.");
+                        }
+                    } else if (topic === notificationTopic) {
+                        showNotification(msgString);
+                    } else if (topicParts[1] === 'status') {
+                        handleStatusUpdate(topicParts[2], msgString);
                     }
                 });
-            } catch (error) {
+            } catch (error) { 
                 updateStatus('İstemci oluşturma hatası!', 'red');
-                console.error('MQTT İstemcisi oluşturulurken hata: ', error);
+                debugLog('İstemci oluşturma hatası: ' + error.message);
             }
         }
 
-        function sendCommand(cmd) {
+        function sendCommand(topic, cmd) {
             if (client && client.connected) {
-                console.log(`Komut Gönderiliyor [${robotTopic}]: ${cmd}`);
-                client.publish(robotTopic, cmd, { qos: 0, retain: false }, (error) => {
-                    if (error) {
-                        console.error('Mesaj gönderme hatası:', error);
-                        updateStatus('Gönderme Hatası!', 'red');
-                    }
-                });
+                client.publish(topic, cmd);
+                debugLog(`Komut gönderildi: ${topic} = ${cmd}`);
             } else {
-                console.warn('Komut gönderilemedi - MQTT bağlı değil.');
                 updateStatus('Bağlı Değil!', 'red');
-            }
-        }
-
-        function updateStatus(message, color) {
-            if (statusElement) {
-                statusElement.textContent = 'Durum: ' + message;
-                statusElement.style.color = color;
+                debugLog('MQTT bağlı değil, komut gönderilemedi');
             }
         }
         
-        function handleFireAlarm(status) {
-            if (!fireAlarmElement) fireAlarmElement = document.getElementById('fireAlarm');
-            if (!fireAlarmElement) return;
-
-            if (status === "FIRE") {
-                fireAlarmElement.style.display = 'block';
-                if (!fireFlashInterval) {
-                    isBodyFlashingRed = false; 
-                    fireFlashInterval = setInterval(() => {
-                        isBodyFlashingRed = !isBodyFlashingRed;
-                        document.body.style.backgroundColor = isBodyFlashingRed ? 'red' : originalBodyBgColor;
-                    }, 500);
-                }
-            } else if (status === "NO_FIRE") {
-                stopFireAlarmVisuals();
-            }
+        function updateStatus(message, color) { 
+            if (statusElement) { 
+                statusElement.textContent = 'Durum: ' + message; 
+                statusElement.style.color = color; 
+            } 
         }
-
-        function stopFireAlarmVisuals() {
-            if (!fireAlarmElement) fireAlarmElement = document.getElementById('fireAlarm');
-            if (fireAlarmElement) fireAlarmElement.style.display = 'none';
+        
+        function handleStatusUpdate(type, value) {
+            debugLog(`Durum güncellendi: ${type} = ${value}`);
             
-            if (fireFlashInterval) {
-                clearInterval(fireFlashInterval);
-                fireFlashInterval = null;
+            if (type === 'servo') {
+                updateServoUI(value);
+            } else if (type === 'pump') {
+                const isPumpOn = (value === 'ON');
+                updatePumpUI(isPumpOn);
+                debugLog(`Pompa durumu güncellendi: ${isPumpOn ? 'AÇIK' : 'KAPALI'}`);
             }
-            document.body.style.backgroundColor = originalBodyBgColor;
-            isBodyFlashingRed = false;
         }
-
-        // --- YÖN KONTROLÜ FONKSİYONLARI ---
-        function activateDirectionButton(button) {
-            // Önceki aktif butondan 'active' sınıfını kaldır
-            if (currentDirectionButton) {
-                currentDirectionButton.classList.remove('active');
+        
+        function updateServoUI(angle) {
+            const angleNum = parseInt(angle, 10);
+            if (document.activeElement !== servoSlider) {
+                servoSlider.value = angleNum;
             }
-            // Yeni butona 'active' sınıfını ekle
-            button.classList.add('active');
-            // 'currentDirectionButton' değişkenini güncelle
-            currentDirectionButton = button;
-        }
-
-        function setupDirectionButtons() {
-            const directionButtons = document.querySelectorAll('.direction-button');
-            directionButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const command = this.dataset.command;
-                    sendCommand(command);
-                    console.log(`Komut gönderildi: ${command}`);
-                    activateDirectionButton(this); // Tıklanan butonu aktif yap
-                });
-            });
-        }
-        // --- YÖN KONTROLÜ FONKSİYONLARI SONU ---
-
-        function setupServoSlider() {
-            const slider = document.getElementById('servoSlider');
-            const display = document.getElementById('servoValueDisplay');
-            const resetButton = document.getElementById('servoResetButton');
-            if (!slider || !display || !resetButton) {
-                console.error("Servo slider, display, or reset button element not found.");
-                return;
+            const displayValue = angleNum - 90;
+            servoDisplay.textContent = displayValue + '°';
+            // Slider dolgu efekti için:
+            servoSlider.style.setProperty('--servo-value', angleNum / 180 * 100);
+            // Dolgu efekti için parent'a genişlik ayarla
+            const wrapper = servoSlider.closest('.servo-slider-modern-wrapper');
+            if(wrapper) {
+                const fill = (angleNum / 180 * 100);
+                wrapper.style.setProperty('--servo-fill', fill + '%');
+                // Pseudo-element için width güncelle
+                wrapper.style.setProperty('--servo-fill-width', fill + '%');
+                // Modern dolgu efekti
+                wrapper.style.setProperty('width', wrapper.style.width || '90%');
+                wrapper.style.setProperty('position', 'relative');
+                wrapper.style.setProperty('overflow', 'hidden');
+                // Pseudo-elementi güncellemek için:
+                wrapper.style.setProperty('--fill-width', fill + '%');
+                // Aşağıda JS ile pseudo-element güncellenemez, sadece CSS ile width ayarlanır.
+                wrapper.style.setProperty('--fill-width', fill + '%');
+                // Fallback: doğrudan stil uygula (Safari/Chrome için)
+                wrapper.style.setProperty('setProperty', '--fill-width', fill + '%');
+                // Asıl dolgu efekti için:
+                wrapper.style.setProperty('--fill-width', fill + '%');
+                // Aşağıdaki satır, pseudo-elementin genişliğini günceller:
+                wrapper.style.setProperty('--fill-width', fill + '%');
+                // Modern CSS ile .servo-slider-modern-wrapper::before width ayarlanır
+                wrapper.style.setProperty('--fill-width', fill + '%');
             }
+            debugLog(`Servo açısı güncellendi: ${displayValue}°`);
+        }
 
-            function updateDisplay(rawValue) {
-                const displayValue = parseInt(rawValue) - 90;
-                let prefix = "";
-                if (displayValue > 0) {
-                    prefix = "+";
-                }
-                display.textContent = prefix + displayValue + '°';
+        function updatePumpUI(isPumpOn) {
+            // Mevcut durumu kontrol et
+            const currentlyOn = pumpButton.classList.contains('on');
+            
+            if (currentlyOn !== isPumpOn) {
+                debugLog(`Pompa UI durumu değiştiriliyor: ${currentlyOn} -> ${isPumpOn}`);
+                
+                // CSS sınıflarını güncelle
+                pumpButton.classList.remove('on', 'off');
+                pumpButton.classList.add(isPumpOn ? 'on' : 'off');
+                
+                // Buton metnini güncelle
+                pumpButton.textContent = `Su Pompası: ${isPumpOn ? 'Açık' : 'Kapalı'}`;
+                
+                debugLog(`Pompa UI güncellendi: ${isPumpOn ? 'AÇIK' : 'KAPALI'}`);
+            } else {
+                debugLog(`Pompa UI zaten doğru durumda: ${isPumpOn ? 'AÇIK' : 'KAPALI'}`);
             }
-            updateDisplay(slider.value); // Set initial display value
-            slider.addEventListener('input', function() {
-                updateDisplay(this.value);
-            });
-            slider.addEventListener('change', function() {
-                const angle = this.value;
-                sendCommand('X' + angle); // Send servo command
-            });
-            resetButton.addEventListener('click', function() {
-                slider.value = 90; // Reset to 90 degrees
-                updateDisplay(slider.value);
-                sendCommand('X90'); // Send reset command
-            });
         }
 
-        function setupTurboCheckbox() {
-            var turboCheck = document.getElementById('turboCheckbox');
-            if (!turboCheck) return;
-            turboCheck.addEventListener('change', function () {
-                const cmd = this.checked ? 'T' : 'N'; // T for Turbo, N for Normal
-                sendCommand(cmd);
-                console.log("Turbo modu: " + (this.checked ? 'Aktif' : 'Kapalı'));
-            });
+        function handleFireAlarm(location, status) {
+            fireStates[location] = (status === "FIRE");
+            fireAlarmBanner.style.display = Object.values(fireStates).some(s => s) ? 'block' : 'none';
+        }
+        
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => { notification.style.display = 'none'; }, 2800);
         }
 
-        function setupsuPompasibuton() {
-            const suPompasibuton = document.getElementById('suPompasibuton');
-            if (!suPompasibuton) return;
+        function showConfirmationModal() {
+            const modal = document.getElementById('confirmModal');
+            const modalText = document.getElementById('modalText');
+            let countdown = 3;
+            modalText.innerHTML = `Alev algılandı! Su fışkırtılacak... <span id="countdown">${countdown}</span>`;
+            modal.style.display = 'flex';
+            
+            if (countdownInterval) clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
+                countdown--;
+                const countdownSpan = document.getElementById('countdown');
+                if(countdownSpan) countdownSpan.textContent = countdown;
+                if (countdown <= 0) clearInterval(countdownInterval);
+            }, 1000);
 
-            isWaterPumpOn = false; // Initialize state
-            suPompasibuton.textContent = 'Su Fışkırt: Kapalı';
-            suPompasibuton.classList.remove('on');
-            suPompasibuton.classList.add('off');
-
-            suPompasibuton.addEventListener('click', function() {
-                isWaterPumpOn = !isWaterPumpOn; // Toggle state
-                const cmd = isWaterPumpOn ? 'w' : 'W'; // 'w' to turn on, 'W' to turn off
-                sendCommand(cmd);
-                console.log("Su Fışkırtma: " + (isWaterPumpOn ? 'Aktif' : 'Kapalı'));
-
-                if (isWaterPumpOn) { 
-                    this.textContent = 'Su Fışkırt: Açık';
-                    this.classList.remove('off');
-                    this.classList.add('on');
-                } else { 
-                    this.textContent = 'Su Fışkırt: Kapalı';
-                    this.classList.remove('on');
-                    this.classList.add('off');
-                }
-            });
-        }
-
-        function setupKlavye() {
-            document.addEventListener("keydown", function (event) {
-                // Ignore key events if an input field or slider is focused
-                if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.type === 'range') {
-                    return;
-                }
-                // Prevent continuous commands on key hold
-                if (event.repeat) return;
-
-                let targetButton = null;
-
-                switch (event.key.toLowerCase()) {
-                    case "w": targetButton = document.getElementById('ileriButton'); break; 
-                    case "s": targetButton = document.getElementById('geriButton'); break; 
-                    case "a": targetButton = document.getElementById('solButton'); break; 
-                    case "d": targetButton = document.getElementById('sagButton'); break; 
-                    case " ": targetButton = document.getElementById('stopButton'); break; // Spacebar for stop
-                    case "t": // Toggle Turbo mode
-                        var turboCheck = document.getElementById('turboCheckbox');
-                        if(turboCheck) {
-                            turboCheck.checked = !turboCheck.checked;
-                            turboCheck.dispatchEvent(new Event('change')); // Trigger the change event
-                        }
-                        break;
-                    case "r": // Reset Servo
-                        const resetButton = document.getElementById('servoResetButton');
-                        if (resetButton) {
-                            resetButton.click(); // Simulate click on reset button
-                        }
-                        break;
-                    case "f": // Toggle Water Pump
-                        const suPompasibuton = document.getElementById('suPompasibuton');
-                        if(suPompasibuton){
-                            suPompasibuton.click(); // Simulate click on water pump button
-                        }
-                        break;
-                }
-
-                // If a key corresponds to a direction button, simulate a click
-                if (targetButton) {
-                    targetButton.click(); 
-                }
-            });
+            if(modalTimeout) clearTimeout(modalTimeout);
+            modalTimeout = setTimeout(() => {
+                modal.style.display = 'none';
+                if (countdownInterval) clearInterval(countdownInterval);
+            }, 4000);
         }
 
         function setupEventHandlers() {
-            console.log("Olay dinleyicileri ayarlanıyor...");
-            setupDirectionButtons();
-            setupServoSlider();
-            setupTurboCheckbox();
-            setupsuPompasibuton();
-            setupKlavye();
-            console.log("Olay dinleyicileri ayarlandı.");
-        }
+            debugLog('Event handler\'lar kuruluyor...');
+            
+            document.getElementById('confirmBtn').addEventListener('click', () => {
+                sendCommand(actionResponseTopic, 'CONFIRM');
+                document.getElementById('confirmModal').style.display = 'none';
+                actionPromptShown = false;
+                if (modalTimeout) clearTimeout(modalTimeout);
+                if (countdownInterval) clearInterval(countdownInterval);
+            });
+            
+            document.getElementById('cancelBtn').addEventListener('click', () => {
+                sendCommand(actionResponseTopic, 'CANCEL');
+                document.getElementById('confirmModal').style.display = 'none';
+                actionPromptShown = false;
+                fireDismissed = true;
 
-        window.onload = function () {
-            console.log("Sayfa yüklendi. MQTT bağlantısı başlatılıyor...");
-            fireAlarmElement = document.getElementById('fireAlarm');
-            stopFireAlarmVisuals(); // Ensure alarm is hidden on load
-            connectToBroker();
-        };
+                // 10 saniye sonra tekrar gösterime izin ver
+                if (dismissCooldownTimer) clearTimeout(dismissCooldownTimer);
+                dismissCooldownTimer = setTimeout(() => {
+                    fireDismissed = false;
+                    debugLog("Yangın uyarısı için tekrar izin verildi.");
+                }, 10000);
+
+                if (modalTimeout) clearTimeout(modalTimeout);
+                if (countdownInterval) clearInterval(countdownInterval);
+            });
+            
+            const movementButtons = { "ileri": "b", "geri": "a", "sol": "c", "sag": "d" };
+            for(const [id, cmd] of Object.entries(movementButtons)){
+                const btn = document.getElementById(id);
+                btn.addEventListener("mousedown", () => sendCommand(robotControlTopic, cmd));
+                btn.addEventListener("mouseup", () => sendCommand(robotControlTopic, "S"));
+            }
+            
+            document.getElementById('dur').addEventListener("click", () => sendCommand(robotControlTopic, "S"));
+            servoSlider.addEventListener('change', () => sendCommand(robotControlTopic, 'X' + servoSlider.value));
+            servoSlider.addEventListener('input', () => updateServoUI(servoSlider.value));
+            
+            document.getElementById('servoResetButton').addEventListener('click', () => {
+                sendCommand(robotControlTopic, 'X90');
+                updateServoUI('90');
+            });
+            
+            document.getElementById('turboCheckbox').addEventListener('change', function () { 
+                sendCommand(robotControlTopic, this.checked ? 'T' : 'N'); 
+            });
+            
+            pumpButton.addEventListener('click', function() {
+                const isCurrentlyOn = this.classList.contains('on');
+                const newCommand = isCurrentlyOn ? 'w' : 'W';
+                debugLog(`Pompa butonu tıklandı. Mevcut: ${isCurrentlyOn ? 'AÇIK' : 'KAPALI'}, Komut: ${newCommand}`);
+                sendCommand(robotControlTopic, newCommand);
+            });
+            
+            document.getElementById('autoModeButton').addEventListener('click', function() {
+                const isAuto = !this.classList.contains('on');
+                sendCommand(robotModeTopic, isAuto ? 'AUTO' : 'MANUAL');
+                this.classList.toggle('on', isAuto); 
+                this.classList.toggle('off', !isAuto);
+                this.textContent = `Otomatik Mod: ${isAuto ? 'Açık' : 'Kapalı'}`;
+                Object.keys(movementButtons).concat('dur').forEach(id => { 
+                    document.getElementById(id).disabled = isAuto; 
+                });
+            });
+            
+            updateServoUI(servoSlider.value);
+            debugLog('Event handler\'lar kuruldu');
+        }
+        
+        window.onload = connectToBroker;
     </script>
-</body>
-</html>
+
+</body></html>

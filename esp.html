@@ -2,193 +2,327 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <title>Wifi Robot Kontrol (MQTT)</title>
-    <style>
-    /* Temel Stiller ve Modern Tasarım */
+    <style>:root {
+    --button-size: 80px;
+    --button-font-size: 15px;
+    --h2-font-size: 1.5em;
+    --h3-font-size: 1.1em;
+}
+body {
+    background: #2540d9;
+    background: linear-gradient(0deg, rgba(37,64,217,1) 0%, rgba(45,253,215,1) 100%);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #f1f1f1;
+    margin: 0;
+    padding: 10px;
+    text-align: center;
+    min-height: 100vh;
+}
+.container {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1.5px solid rgba(0,255,204,0.09);
+    box-shadow: 0 8px 40px 0 rgba(37,64,217,0.15), 0 1.5px 3px 0 rgba(45,253,215,0.09);
+    border-radius: 18px;
+    padding: 15px;
+    max-width: 95%;
+    margin: 10px auto;
+    backdrop-filter: blur(11px);
+    box-sizing: border-box;
+}
+h2 {
+    font-size: var(--h2-font-size);
+    color: #00ffd0;
+    text-shadow: 0 0 10px #00ffd0, 0 0 2px #000;
+    margin: 5px 0;
+    letter-spacing: 1px;
+}
+h3 {
+    font-size: var(--h3-font-size);
+    border-bottom: 1.5px solid rgba(0,255,204,0.18);
+    padding-bottom: 4px;
+    margin: 13px 0 10px 0;
+    color: #fff;
+    text-shadow: 0 0 4px #1e90ff60;
+}
+.control-section {
+    border-radius: 14px;
+    padding: 12px 8px;
+    margin: 12px 0;
+    background: rgba(0, 0, 0, 0.11);
+    box-shadow: 0 2px 12px 0 rgba(0,255,204,0.04);
+}
+
+/* Butonlar */
+.button-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+    justify-items: center;
+    align-items: center;
+}
+.button {
+    background: linear-gradient(135deg, #36ffe7 0%, #2540d9 100%);
+    border: none;
+    color: #fff;
+    padding: 0;
+    font-size: var(--button-font-size);
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 15px;
+    width: var(--button-size);
+    height: calc(var(--button-size) * 0.7);
+    box-shadow: 0 0 14px 0 #36ffe7a0, 0 2px 10px 0 #2540d950;
+    transition: 
+        background 0.2s, 
+        box-shadow 0.2s, 
+        transform 0.13s cubic-bezier(.17,.67,.83,.67);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+    position: relative;
+    overflow: hidden;
+}
+.button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 15px;
+    box-shadow: 0 0 0 0 #36ffe7;
+    opacity: 0;
+    transition: box-shadow 0.2s, opacity 0.2s;
+}
+.button:hover:not(:disabled),
+.button:focus-visible:not(:disabled) {
+    background: linear-gradient(135deg, #00ffd0 0%, #2540d9 100%);
+    box-shadow: 0 0 25px 0 #00ffd080, 0 2px 10px 0 #2540d950;
+    transform: scale(1.06);
+}
+.button:active:not(:disabled) {
+    background: linear-gradient(135deg, #009ba8 0%, #1a2b7c 100%);
+    box-shadow: 0 0 22px 0 #009ba880, 0 2px 10px 0 #1a2b7c60;
+    transform: scale(0.96);
+}
+#dur {
+    background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+    font-weight: bold;
+    box-shadow: 0 0 20px #ff416c66, 0 2px 10px #ff4b2b33;
+}
+#dur:hover:not(:disabled),
+#dur:focus-visible:not(:disabled) {
+    background: linear-gradient(135deg, #ff6a8b 0%, #ff4b2b 100%);
+    box-shadow: 0 0 28px #ff416c99, 0 2px 10px #ff4b2b33;
+}
+#dur:active:not(:disabled) {
+    background: linear-gradient(135deg, #d40436 0%, #b1001b 100%);
+    box-shadow: 0 0 18px #d4043666, 0 2px 10px #b1001b33;
+}
+.button:disabled {
+    background: linear-gradient(135deg, #525252, #3d3d3d) !important;
+    cursor: not-allowed;
+    opacity: 0.56;
+    box-shadow: none;
+}
+.empty { width: var(--button-size); height: calc(var(--button-size) * 0.7); }
+
+.servo-slider-modern-wrapper {
+    position: relative;
+    width: 100%;
+    margin: 20px auto 10px auto;
+    height: 14px;
+    background: #0a223a;
+    border-radius: 11px;
+    overflow: hidden;
+    box-shadow: 0 0 12px #00ffd04a;
+}
+input[type=range]#servoSlider {
+    appearance: none; -webkit-appearance: none;
+    width: 100%; height: 100%; background: transparent; position: relative; z-index: 2;
+}
+input[type=range]#servoSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 26px; width: 26px;
+    background: #00ffd0;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #00ffd0b0;
+    cursor: pointer;
+    border: 3px solid #2540d9;
+    position: relative; z-index: 3;
+    transition: background 0.2s;
+}
+input[type=range]#servoSlider:active::-webkit-slider-thumb {
+    background: #36ffe7;
+}
+input[type=range]#servoSlider::-moz-range-thumb {
+    height: 26px; width: 26px;
+    background: #00ffd0;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #00ffd0b0;
+    cursor: pointer;
+    border: 3px solid #2540d9;
+    position: relative; z-index: 3;
+    transition: background 0.2s;
+}
+input[type=range]#servoSlider:active::-moz-range-thumb {
+    background: #36ffe7;
+}
+.servo-slider-modern-wrapper::before {
+    content: '';
+    position: absolute; top: 0; left: 0; height: 100%;
+    background: linear-gradient(to right, #00ffd0, #2540d9);
+    z-index: 1;
+    width: var(--fill-width, 50%);
+    transition: width 0.1s;
+}
+.servo-value-display {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #00ffd0;
+    text-shadow: 0 0 6px #00ffd0;
+}
+.servo-reset-button {
+    background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 10px;
+    margin-top: 15px;
+    font-weight: bold;
+    box-shadow: 0 0 12px #ff416c55;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.13s;
+}
+.servo-reset-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ff6a8b 0%, #ff4b2b 100%);
+    box-shadow: 0 0 20px #ff416caa;
+    transform: scale(1.05);
+}
+.servo-reset-button:active:not(:disabled) {
+    background: linear-gradient(135deg, #d40436 0%, #b1001b 100%);
+    box-shadow: 0 0 10px #d4043677;
+    transform: scale(0.97);
+}
+
+/* Toggle button ve ayarlar */
+.settings-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+}
+.control-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+.control-item label {
+    font-weight: bold;
+    margin-right: auto;
+    padding-left: 10px;
+    color: #eee;
+}
+.control-item input[type="checkbox"] {
+    transform: scale(1.23);
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: #00ffd0;
+}
+.toggle-button {
+    border: none;
+    color: white;
+    padding: 12px 15px;
+    font-size: 1em;
+    cursor: pointer;
+    border-radius: 12px;
+    width: 100%;
+    height: auto;
+    transition: 0.25s;
+    box-shadow: 0 0 13px #2540d955, 0 2px 8px #00ffd055;
+    user-select: none;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    background: linear-gradient(90deg, #2540d9 0%, #36ffe7 100%);
+}
+.toggle-button.on {
+    background: linear-gradient(90deg, #00ffd0 0%, #36ffe7 100%);
+    color: #2540d9;
+    box-shadow: 0 0 18px #00ffd088, 0 2px 10px #36ffe755;
+}
+.toggle-button.off {
+    background: linear-gradient(90deg, #2540d9 0%, #36ffe7 100%);
+    color: #fff;
+}
+.toggle-button:active {
+    filter: brightness(0.93);
+    box-shadow: 0 0 8px #2540d955;
+    transform: scale(0.97);
+}
+#status, .debug-info {
+    font-size: 0.8em;
+    color: #00ffd0;
+    margin-bottom: 4px;
+    text-shadow: 0 0 3px #00ffd080;
+}
+.debug-info { margin-top: 15px; color: #fff; }
+
+.fire-alarm, .notification {
+    font-size: 1em;
+    background: linear-gradient(90deg, #ff416c 0%, #ff4b2b 100%);
+    color: #fff;
+    border-radius: 10px;
+    padding: 8px 0;
+    margin: 4px 0 10px 0;
+    box-shadow: 0 0 16px #ff416c66;
+    display: none;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+#fireAlarm { display: none; }
+.notification { background: linear-gradient(90deg, #36ffe7 0%, #2540d9 100%); color: #2540d9; }
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    z-index: 20000;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+}
+.modal-content {
+    background-color: #101b2a;
+    padding: 22px 18px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 5px 20px #2540d9aa;
+}
+.modal-content p { font-size: 1.1em; margin-bottom: 20px; color: #00ffd0; }
+.modal-button {
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    text-align: center;
+    font-size: 16px;
+    margin: 4px 10px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: 0.2s;
+}
+#confirmBtn { background-color: #28a745; }
+#cancelBtn { background-color: #ff416c; }
+
+@media (min-width: 600px) {
     :root {
-        --button-size: 80px;  /* Buton boyutu için değişken */
-        --button-font-size: 15px; /* Buton yazı boyutu için değişken */
-        --h2-font-size: 1.5em; /* Ana başlık için değişken */
-        --h3-font-size: 1.1em; /* Ara başlık için değişken */
+        --button-size: 100px;
+        --button-font-size: 18px;
+        --h2-font-size: 1.8em;
+        --h3-font-size: 1.2em;
     }
-    
-    body {
-        background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Daha iyi mobil uyumlu fontlar */
-        color: #f1f1f1;
-        margin: 0;
-        padding: 10px; /* Kenar boşluğunu biraz azalttık */
-        text-align: center;
-        -webkit-tap-highlight-color: transparent; /* Mobilde dokunma vurgusunu kaldır */
-    }
-
-    .container {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); /* Gölgeyi yumuşattık */
-        border-radius: 15px;
-        padding: 15px; /* İç boşluğu azalttık */
-        max-width: 95%; /* Genişliği esnek yaptık */
-        margin: 10px auto;
-        backdrop-filter: blur(10px);
-        box-sizing: border-box; /* padding ve border hesaba katılsın */
-    }
-
-    h2 {
-        font-size: var(--h2-font-size);
-        color: #00ffcc;
-        text-shadow: 1px 1px 5px #000;
-        margin-top: 5px;
-        margin-bottom: 5px;
-    }
-
-    h3 {
-        font-size: var(--h3-font-size);
-        border-bottom: 1px solid rgba(255,255,255,0.2);
-        padding-bottom: 5px;
-        margin-top: 15px; /* Başlıklar arası mesafeyi azalttık */
-        margin-bottom: 10px;
-        color: #ffffff;
-    }
-
-    .control-section {
-        border-radius: 12px;
-        padding: 10px; /* Bölüm iç boşluğunu azalttık */
-        margin: 10px 0;
-        background-color: rgba(255,255,255,0.07);
-    }
-    
-    /* Butonlar: Değişkenler ile küçültüldü */
-    .button-grid { 
-        display: grid; 
-        grid-template-columns: repeat(3, 1fr); 
-        gap: 5px; /* Butonlar arası boşluk azaltıldı */
-        justify-items: center; 
-        align-items: center; 
-    }
-
-    .button {
-        background: linear-gradient(135deg, #00c6ff, #0072ff);
-        border: none;
-        color: white;
-        padding: 0; /* Padding kaldırıldı, boyutlar sabit */
-        font-size: var(--button-font-size);
-        font-weight: 500;
-        cursor: pointer;
-        border-radius: 12px;
-        width: var(--button-size); /* Değişken boyut */
-        height: calc(var(--button-size) * 0.7); /* Boyutu orantılı yaptık */
-        transition: 0.2s ease all;
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .button:hover:not(:disabled) {
-        transform: scale(1.05);
-    }
-    .button:active:not(:disabled) { 
-        transform: scale(0.95); /* Tıklama efektini yumuşattık */
-    }
-
-    #dur {
-        background: linear-gradient(135deg, #ff416c, #ff4b2b);
-        font-weight: bold;
-    }
-    .button:disabled {
-        background: linear-gradient(135deg, #525252, #3d3d3d) !important;
-        cursor: not-allowed;
-        opacity: 0.6;
-    }
-
-    /* Servo Slider */
-    .servo-slider-modern-wrapper {
-        position: relative;
-        width: 100%; /* Slider'ı tam genişlik yaptık */
-        margin: 20px auto 10px auto;
-        height: 12px;
-        background: #ddd;
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    /* ... (Slider'ın diğer stilleri aynı kalabilir) ... */
-    input[type=range]#servoSlider { appearance: none; -webkit-appearance: none; width: 100%; height: 100%; background: transparent; position: relative; z-index: 2; }
-    input[type=range]#servoSlider::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; background: #00ffcc; border-radius: 50%; box-shadow: 0 0 6px rgba(0,255,204,0.7); cursor: pointer; position: relative; z-index: 3; }
-    input[type=range]#servoSlider::-moz-range-thumb { height: 24px; width: 24px; background: #00ffcc; border-radius: 50%; box-shadow: 0 0 6px rgba(0,255,204,0.7); cursor: pointer; position: relative; z-index: 3; }
-    .servo-slider-modern-wrapper::before { content: ''; position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(to right, #00ffcc, #0072ff); z-index: 1; width: var(--fill-width, 50%); transition: width 0.1s; }
-    .servo-value-display { font-size: 1.1em; font-weight: 600; color: #00ffcc; }
-    .servo-reset-button { background-color: #dc3545; color: white; border: none; padding: 8px 16px; font-size: 14px; cursor: pointer; border-radius: 8px; margin-top: 15px; }
-
-
-    /* Diğer Ayarlar */
-    .settings-grid { 
-        display: flex; 
-        flex-direction: column; 
-        align-items: stretch; /* Elemanların tam genişlikte olmasını sağlar */
-        gap: 10px;
-    }
-
-    .control-item { 
-        display: flex; 
-        align-items: center; 
-        justify-content: center;
-        width: 100%; 
-    }
-    .control-item label { 
-        font-weight: bold; 
-        margin-right: auto; /* Label'ı sola yaslar */
-        padding-left: 10px;
-        color: #eee;
-    }
-    .control-item input[type="checkbox"] { 
-        transform: scale(1.3); 
-        margin-right: 10px; /* Checkbox'ı sağa yaslar */
-        cursor: pointer;
-        accent-color: #00ffcc;
-    }
-
-    .toggle-button {
-        border: none;
-        color: white;
-        padding: 12px 15px; /* Düğme iç boşluğunu ayarladık */
-        font-size: 1em;
-        cursor: pointer;
-        border-radius: 10px;
-        width: 100%; /* Tam genişlik kaplar */
-        height: auto;
-        transition: 0.3s ease;
-        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-        user-select: none;
-    }
-    .toggle-button:active { 
-        transform: scale(0.98); 
-    }
-    .toggle-button.on { background: linear-gradient(to right, #00b09b, #96c93d); }
-    .toggle-button.off { background: linear-gradient(to right, #4776e6, #8e54e9); }
-    
-    #status, .debug-info { font-size: 0.8em; } /* Durum ve debug yazısını küçülttük */
-    .debug-info { margin-top: 15px; }
-
-    /* MEDIA QUERY: Ekran 600px'den büyükse (tablet/PC), boyutları biraz büyütelim */
-    @media (min-width: 600px) {
-        :root {
-            --button-size: 100px;
-            --button-font-size: 18px;
-            --h2-font-size: 1.8em;
-            --h3-font-size: 1.2em;
-        }
-        .container {
-             max-width: 500px; /* PC'de maksimum genişliği sabitliyoruz */
-        }
-    }
-    
-    /* ... (modal, notification, fire-alarm stilleriniz aynı kalabilir) ... */
-    .fire-alarm, .notification { font-size: 1em; }
-    .modal-overlay { display: none; position: fixed; z-index: 20000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center;}
-    .modal-content { background-color: #222; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-    .modal-content p { font-size: 1.1em; margin-bottom: 20px; }
-    .modal-button { border: none; color: white; padding: 12px 24px; text-align: center; font-size: 16px; margin: 4px 10px; cursor: pointer; border-radius: 8px; }
-    #confirmBtn { background-color: #28a745; }
-    #cancelBtn { background-color: #dc3545; }
+    .container { max-width: 500px; }
+}
 </style>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>

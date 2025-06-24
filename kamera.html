@@ -162,11 +162,12 @@
         }
         
         .room-code {
-            font-size: 24px;
+            font-size: 36px;
             font-weight: bold;
             color: #667eea;
-            letter-spacing: 2px;
+            letter-spacing: 4px;
             margin: 10px 0;
+            font-family: 'Courier New', monospace;
         }
         
         .input-group {
@@ -177,10 +178,13 @@
             padding: 15px;
             border: 2px solid #ddd;
             border-radius: 10px;
-            font-size: 16px;
-            width: 200px;
+            font-size: 20px;
+            width: 150px;
             text-align: center;
-            letter-spacing: 1px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
         }
         
         .input-group input:focus {
@@ -247,7 +251,7 @@
             <div id="roomDisplay" class="room-info" style="display: none;">
                 <h3>🔑 Oda Kodu</h3>
                 <div id="roomCode" class="room-code">YÜKLENIYOR...</div>
-                <p>Bu kodu izleyici ile paylaşın</p>
+                <p>Bu 3 karakterli kodu izleyici ile paylaşın</p>
             </div>
             
             <div class="video-container">
@@ -262,8 +266,9 @@
             <h2>👁️ Kamera İzleme</h2>
             
             <div class="input-group">
-                <input type="text" id="roomCodeInput" placeholder="ODA KODUNU GİRİN" maxlength="50" style="text-transform: uppercase;">
+                <input type="text" id="roomCodeInput" placeholder="KOD" maxlength="3" style="text-transform: uppercase;">
             </div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">3 karakterli kodu girin (örn: A3C)</p>
             
             <div class="controls">
                 <button id="joinRoom" class="control-btn">🔗 Odaya Katıl</button>
@@ -297,7 +302,7 @@
         // PeerJS başlatma
         function initializePeer() {
             try {
-                // Basit peer ID kullan
+                // 3 karakterli kod ile peer ID kullan
                 const peerId = currentRoom || generateRoomCode();
                 
                 peer = new Peer(peerId, {
@@ -376,7 +381,7 @@
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 document.getElementById('localVideo').srcObject = localStream;
                 
-                // Yeni peer başlat
+                // Yeni 3 karakterli kod ile peer başlat
                 currentRoom = generateRoomCode();
                 initializePeer();
                 
@@ -405,9 +410,9 @@
         
         // Odaya katılma
         async function joinRoom() {
-            const roomCode = document.getElementById('roomCodeInput').value.trim();
-            if (!roomCode) {
-                alert('Lütfen oda kodunu girin!');
+            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+            if (!roomCode || roomCode.length !== 3) {
+                alert('Lütfen 3 karakterli oda kodunu girin! (örn: A3C)');
                 return;
             }
             
@@ -415,10 +420,22 @@
                 updateStatus('connecting', 'Odaya bağlanıyor...');
                 
                 if (!peer || peer.destroyed) {
-                    initializePeer();
+                    // İzleyici için benzersiz ID oluştur
+                    const viewerId = 'viewer-' + Math.random().toString(36).substr(2, 6);
+                    peer = new Peer(viewerId, {
+                        config: {
+                            iceServers: [
+                                { urls: 'stun:stun.l.google.com:19302' },
+                                { urls: 'stun:stun1.l.google.com:19302' }
+                            ]
+                        }
+                    });
+                    
                     // Peer bağlantısının kurulmasını bekle
-                    await new Promise(resolve => {
+                    await new Promise((resolve, reject) => {
                         peer.on('open', resolve);
+                        peer.on('error', reject);
+                        setTimeout(() => reject(new Error('Timeout')), 10000);
                     });
                 }
                 
@@ -443,15 +460,23 @@
                     
                     currentCall.on('error', function(err) {
                         console.error('Call hatası:', err);
-                        updateStatus('disconnected', 'Bağlantı hatası');
+                        updateStatus('disconnected', 'Yayıncı bulunamadı veya bağlantı hatası');
                     });
+                    
+                    // Bağlantı timeout'u
+                    setTimeout(() => {
+                        if (currentCall && !remoteStream) {
+                            updateStatus('disconnected', 'Kod bulunamadı: ' + roomCode);
+                            leaveRoom();
+                        }
+                    }, 5000);
                 } else {
                     updateStatus('disconnected', 'Yayıncı bulunamadı');
                 }
                 
             } catch (error) {
                 console.error('Odaya katılma hatası:', error);
-                updateStatus('disconnected', 'Bağlantı hatası');
+                updateStatus('disconnected', 'Bağlantı hatası: ' + error.message);
             }
         }
         
@@ -527,9 +552,20 @@
             return constraints;
         }
         
-        // Oda kodu oluşturma
+        // 3 karakterli oda kodu oluşturma (A3C formatı)
         function generateRoomCode() {
-            return 'room-' + Math.random().toString(36).substr(2, 8);
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const numbers = '0123456789';
+            
+            let code = '';
+            // İlk karakter: harf
+            code += letters.charAt(Math.floor(Math.random() * letters.length));
+            // İkinci karakter: rakam
+            code += numbers.charAt(Math.floor(Math.random() * numbers.length));
+            // Üçüncü karakter: harf
+            code += letters.charAt(Math.floor(Math.random() * letters.length));
+            
+            return code;
         }
         
         // Durum güncelleme
@@ -581,6 +617,27 @@
             });
         }
         
+        // Kod girişi için otomatik büyük harf ve karakter sınırı
+        function setupRoomCodeInput() {
+            const input = document.getElementById('roomCodeInput');
+            
+            input.addEventListener('input', function(e) {
+                let value = e.target.value.toUpperCase();
+                // Sadece harf ve rakam
+                value = value.replace(/[^A-Z0-9]/g, '');
+                // Maximum 3 karakter
+                value = value.substring(0, 3);
+                e.target.value = value;
+            });
+            
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                let paste = (e.clipboardData || window.clipboardData).getData('text');
+                paste = paste.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 3);
+                e.target.value = paste;
+            });
+        }
+        
         // Event listeners
         document.getElementById('startBroadcast').addEventListener('click', startBroadcast);
         document.getElementById('stopBroadcast').addEventListener('click', stopBroadcast);
@@ -597,6 +654,7 @@
         // Sayfa yüklendiğinde
         window.addEventListener('load', function() {
             updateStatus('disconnected', 'Sistem hazırlanıyor...');
+            setupRoomCodeInput();
         });
         
         // Sayfa kapatılırken kaynakları temizle

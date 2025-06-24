@@ -182,7 +182,7 @@
             width: 150px;
             text-align: center;
             letter-spacing: 3px;
-            text-transform: uppercase; /* Bu satır geri getirildi */
+            text-transform: uppercase;
             font-family: 'Courier New', monospace;
             font-weight: bold;
         }
@@ -213,6 +213,64 @@
             font-family: monospace;
             font-size: 12px;
             text-align: left;
+        }
+
+        /* Custom Alert Modal Styles */
+        #customAlertDialogOverlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #customAlertDialog {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+            transform: scale(0.8);
+            opacity: 0;
+            transition: all 0.3s ease-in-out;
+        }
+
+        #customAlertDialogOverlay.visible #customAlertDialog {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        #alertDialogTitle {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        #alertDialogMessage {
+            margin-bottom: 25px;
+            color: #555;
+            word-wrap: break-word; /* For long messages */
+        }
+
+        #alertDialogCloseBtn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        #alertDialogCloseBtn:hover {
+            background: linear-gradient(45deg, #764ba2, #667eea);
         }
     </style>
 </head>
@@ -248,10 +306,10 @@
                 📴 Yayın Kapalı
             </div>
             
-            <div id="roomDisplay" class="room-info" style="display: none;">
-                <h3>🔑 Oda Kodu</h3>
-                <div id="roomCode" class="room-code">YÜKLENIYOR...</div>
-                <p>Bu 3 karakterli kodu izleyici ile paylaşın</p>
+            <div id="roomDisplay" class="room-info">
+                <h3>🔑 Yayın Odası Adı</h3>
+                <div id="roomCode" class="room-code">ODA1</div>
+                <p>Diğer cihazlarla paylaşmak için bu sabit oda adını kullanın.</p>
             </div>
             
             <div class="video-container">
@@ -265,10 +323,12 @@
         <div id="viewer-section" class="section">
             <h2>👁️ Kamera İzleme</h2>
             
-            <div class="input-group">
+            <!-- Oda kodu girişi artık gizli veya kaldırıldı, sabit "ODA1" kullanılacak -->
+            <!-- <div class="input-group">
                 <input type="text" id="roomCodeInput" placeholder="KOD" maxlength="3" style="text-transform: uppercase;">
             </div>
-            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">3 karakterli kodu girin (örn: A3C)</p>
+            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">3 karakterli kodu girin (örn: A3C)</p> -->
+            <p style="margin: 15px 0; color: #666; font-size: 16px;">"ODA1" odasındaki yayını izlemek için "Odaya Katıl" butonuna tıklayın.</p>
             
             <div class="controls">
                 <button id="joinRoom" class="control-btn">🔗 Odaya Katıl</button>
@@ -287,6 +347,15 @@
         </div>
     </div>
 
+    <!-- Custom Alert Modal HTML -->
+    <div id="customAlertDialogOverlay">
+        <div id="customAlertDialog">
+            <h3 id="alertDialogTitle"></h3>
+            <p id="alertDialogMessage"></p>
+            <button id="alertDialogCloseBtn">Tamam</button>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
     <script>
         // Global değişkenler
@@ -294,12 +363,13 @@
         let remoteStream = null;
         let currentCall = null;
         let peer = null;
-        let currentRoom = null;
+        const DEFAULT_ROOM_ID = 'ODA1'; // Sabit oda/sunucu adı
+        let currentRoom = DEFAULT_ROOM_ID; // Varsayılan olarak sabit oda adını kullan
         let isBroadcaster = false;
         let statsInterval = null;
         
         // PeerJS başlatma
-        function initializePeer(initialId = null) {
+        function initializePeer() {
             // Peer objesi zaten varsa ve yok edilmemişse, yeni bir tane oluşturmaya gerek yok.
             if (peer && !peer.destroyed) {
                 console.log('Peer zaten başlatılmış ve aktif:', peer.id);
@@ -307,9 +377,9 @@
             }
 
             try {
-                // Oda kodu belirlenmemişse veya yayıncı ise yeni bir kod oluştur
-                const peerId = initialId || (isBroadcaster ? generateRoomCode() : undefined); 
-                console.log(`Peer ID kullanılıyor: ${peerId || 'rastgele'}`);
+                // Her zaman sabit oda ID'sini kullan
+                const peerId = DEFAULT_ROOM_ID; 
+                console.log(`Peer ID kullanılıyor: ${peerId}`);
 
                 peer = new Peer(peerId, {
                     // Ücretsiz PeerJS cloud sunucusu (prod için önerilmez, kendi sunucunuzu kurun)
@@ -327,10 +397,10 @@
                 peer.on('open', function(id) {
                     console.log('Peer bağlantısı açıldı:', id);
                     if (isBroadcaster) {
-                        currentRoom = id; // Yayıncı kendi ID'sini oda kodu olarak kullanır
+                        currentRoom = id; // Yayıncı için Peer ID'si sabit oda kodu olur
                         document.getElementById('roomCode').textContent = currentRoom;
                         document.getElementById('roomDisplay').style.display = 'block';
-                        updateStatus('connected', 'Yayın hazır! Kod: ' + currentRoom);
+                        updateStatus('connected', 'Yayın hazır! Oda: ' + currentRoom);
                     } else {
                         updateStatus('connected', 'Sistem hazır!');
                     }
@@ -383,8 +453,11 @@
                     // Eğer ID zaten kullanımda ise, yayıncı modunda yeni bir kod deneyebiliriz
                     if (err.type === 'unavailable-id' && isBroadcaster) {
                         console.log('ID zaten kullanımda, yeni kod oluşturuluyor...');
-                        currentRoom = generateRoomCode();
-                        initializePeer(); // Yeni ID ile yeniden başlat
+                        // Sabit ID kullanıldığı için yeni kod oluşturmaya çalışmak yerine
+                        // kullanıcıyı bilgilendirip tekrar denemesini veya başka bir yayıncının
+                        // yayını kapatmasını beklemeyi önerebiliriz.
+                        showAlert('Bu oda adı (' + DEFAULT_ROOM_ID + ') zaten kullanımda. Lütfen başka bir yayıncının yayını kapatmasını bekleyin veya daha sonra tekrar deneyin.');
+                        updateStatus('disconnected', 'Oda dolu veya erişilemez.');
                     }
                 });
                 
@@ -405,7 +478,7 @@
                 document.querySelector('.mode-btn[onclick="switchMode(\'broadcaster\')"]').classList.add('active');
                 document.getElementById('broadcaster-section').classList.add('active');
                 isBroadcaster = true;
-                document.getElementById('roomCode').textContent = "YÜKLENIYOR..."; // Placeholder
+                document.getElementById('roomCode').textContent = DEFAULT_ROOM_ID; // Sabit oda adını göster
                 document.getElementById('roomDisplay').style.display = 'block';
                 initializePeer(); // Yayıncı olarak peer'ı başlat
             } else { // viewer
@@ -413,7 +486,7 @@
                 document.getElementById('viewer-section').classList.add('active');
                 isBroadcaster = false;
                 document.getElementById('roomDisplay').style.display = 'none'; // İzleyici modunda oda kodunu gizle
-                initializePeer(); // İzleyici olarak peer'ı başlat (rastgele ID ile)
+                initializePeer(); // İzleyici olarak peer'ı başlat (rastgele ID ile değil, sabit ID'ye bağlanacak)
             }
             
             updateStatus('disconnected', 'Mod değiştirildi. Sistem hazırlanıyor...');
@@ -422,20 +495,21 @@
         // Yayın başlatma
         async function startBroadcast() {
             try {
+                currentRoom = DEFAULT_ROOM_ID; // Sabit oda adını kullan
                 if (!peer || peer.destroyed) {
-                    // Eğer Peer henüz başlatılmadıysa veya yok edildiyse, yeniden başlat
-                    currentRoom = generateRoomCode(); // Yayıncı için yeni oda kodu oluştur
-                    initializePeer(currentRoom); // Belirli bir ID ile Peer'ı başlat
-                    // Peer bağlantısının kurulmasını bekle
+                    initializePeer(); // initializePeer zaten DEFAULT_ROOM_ID kullanıyor
                     await new Promise((resolve, reject) => {
                         peer.on('open', resolve);
                         peer.on('error', reject);
                     });
-                } else if (peer.id !== currentRoom || !currentRoom) {
-                    // Eğer Peer ID değiştiyse veya henüz oda kodu atanmadıysa
-                    currentRoom = peer.id;
-                    document.getElementById('roomCode').textContent = currentRoom;
-                    document.getElementById('roomDisplay').style.display = 'block';
+                } else if (peer.id !== currentRoom) { // Eğer peer ID farklıysa, mevcut peer'ı yok et ve yeniden başlat
+                    peer.destroy();
+                    peer = null;
+                    initializePeer();
+                     await new Promise((resolve, reject) => {
+                        peer.on('open', resolve);
+                        peer.on('error', reject);
+                    });
                 }
 
                 updateStatus('connecting', 'Kamera erişimi isteniyor...');
@@ -453,7 +527,7 @@
                 document.getElementById('startBroadcast').disabled = true;
                 document.getElementById('stopBroadcast').disabled = false;
                 
-                updateStatus('connected', 'Yayın aktif! Oda kodu: ' + currentRoom);
+                updateStatus('connected', 'Yayın aktif! Oda adı: ' + currentRoom);
                 startStatsMonitoring();
                 
             } catch (error) {
@@ -470,24 +544,19 @@
             document.getElementById('startBroadcast').disabled = false;
             document.getElementById('stopBroadcast').disabled = true;
             updateStatus('disconnected', 'Yayın durduruldu.');
-            // Peer'ı yeniden başlat (izleyici bağlantılarına hazır olmak için)
-            initializePeer(); 
+            initializePeer(); // Peer'ı yeniden başlat (izleyici bağlantılarına hazır olmak için)
         }
         
-        // Odaya katılma
+        // Odaya katılma (sabit "ODA1"e bağlanacak)
         async function joinRoom() {
-            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase(); // Büyük harfe çevir
-            if (!roomCode || roomCode.length !== 3) {
-                alert('Lütfen 3 karakterli oda kodunu girin! (örn: A3C)'); 
-                return;
-            }
+            const roomCode = DEFAULT_ROOM_ID; // Sabit oda adını kullan
             
             try {
-                updateStatus('connecting', 'Sisteme bağlanıyor...');
+                updateStatus('connecting', 'Sisteme bağlanılıyor...');
                 
                 // Eğer peer yoksa veya yok edilmişse yeniden başlat
                 if (!peer || peer.destroyed) {
-                    initializePeer(); // İzleyici olarak Peer'ı başlat (rastgele ID ile)
+                    initializePeer(); // initializePeer zaten DEFAULT_ROOM_ID kullanıyor
                     await new Promise((resolve, reject) => { // Peer bağlantısının kurulmasını bekle
                         peer.on('open', resolve);
                         peer.on('error', reject);
@@ -498,7 +567,7 @@
                 currentCall = peer.call(roomCode, null); // İzleyici olarak kendi akışımızı göndermiyoruz
                 
                 if (!currentCall) {
-                    updateStatus('disconnected', 'Kod bulunamadı veya bağlantı kurulamadı: ' + roomCode);
+                    updateStatus('disconnected', 'Yayıncı aktif değil veya bağlantı kurulamadı: ' + roomCode);
                     console.error('Call objesi oluşturulamadı.');
                     return;
                 }
@@ -527,14 +596,16 @@
                 currentCall.on('error', function(err) {
                     console.error('Call hatası:', err);
                     updateStatus('disconnected', 'Bağlantı hatası: ' + err.type);
+                    showAlert('Yayıncıya bağlanırken hata oluştu: ' + err.type + '. Oda adını kontrol edin veya yayıncının aktif olduğundan emin olun.');
                     leaveRoom();
                 });
                 
                 // Bağlantı timeout'u - stream gelmezse
                 setTimeout(() => {
-                    if (currentCall && !streamReceived && currentCall.open) { // currentCall hala açıksa ve stream gelmediyse
+                    if (currentCall && !streamReceived && currentCall.open) { 
                         console.log('Stream timeout: Yayıncıdan yanıt gelmedi.');
-                        updateStatus('disconnected', 'Kod aktif değil veya yanıt yok: ' + roomCode);
+                        updateStatus('disconnected', 'Yayıncı aktif değil veya yanıt yok: ' + roomCode);
+                        showAlert('Yayıncıdan video akışı alınamadı. Yayıncının aktif olduğundan emin olun.');
                         leaveRoom();
                     }
                 }, 10000); // 10 saniye bekle
@@ -542,6 +613,7 @@
             } catch (error) {
                 console.error('Odaya katılma hatası:', error);
                 updateStatus('disconnected', 'Sistem hatası: ' + error.message);
+                showAlert('Odaya bağlanırken kritik hata oluştu: ' + error.message);
                 cleanup();
             }
         }
@@ -589,7 +661,7 @@
                 peer.destroy();
                 peer = null;
             }
-            currentRoom = null;
+            currentRoom = DEFAULT_ROOM_ID; // Oda adını sabitle
             stopStatsMonitoring();
         }
         
@@ -623,17 +695,15 @@
             return constraints;
         }
         
-        // 3 karakterli oda kodu oluşturma (A3C formatı)
+        // Oda kodu oluşturma fonksiyonu artık kullanılmıyor, ancak burada duruyor.
+        // Eğer ileride rastgele oda kodlarına geri dönülmek istenirse kullanılabilir.
         function generateRoomCode() {
             const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             const numbers = '0123456789';
             
             let code = '';
-            // İlk karakter: harf
             code += letters.charAt(Math.floor(Math.random() * letters.length));
-            // İkinci karakter: rakam
             code += numbers.charAt(Math.floor(Math.random() * numbers.length));
-            // Üçüncü karakter: harf
             code += letters.charAt(Math.floor(Math.random() * letters.length));
             
             return code;
@@ -695,26 +765,31 @@
             }
         }
         
-        // Kod girişi için otomatik büyük harf ve karakter sınırı
+        // Özel Alert Modal fonksiyonu
+        function showAlert(message, title = "Uyarı") {
+            const overlay = document.getElementById('customAlertDialogOverlay');
+            const dialogTitle = document.getElementById('alertDialogTitle');
+            const dialogMessage = document.getElementById('alertDialogMessage');
+            const closeBtn = document.getElementById('alertDialogCloseBtn');
+
+            dialogTitle.textContent = title;
+            dialogMessage.textContent = message;
+            overlay.classList.add('visible'); // Animasyon için sınıf ekle
+            overlay.style.display = 'flex'; // Modalı görünür yap
+
+            const closeHandler = () => {
+                overlay.classList.remove('visible');
+                overlay.style.display = 'none'; // Modalı tekrar gizle
+                closeBtn.removeEventListener('click', closeHandler); // Event listener'ı kaldır
+            };
+
+            closeBtn.addEventListener('click', closeHandler);
+        }
+
+        // Kod girişi için otomatik büyük harf ve karakter sınırı (artık kullanılmıyor ama fonksiyonu duruyor)
         function setupRoomCodeInput() {
-            const input = document.getElementById('roomCodeInput');
-            if (input) {
-                input.addEventListener('input', function(e) {
-                    let value = e.target.value.toUpperCase(); // Büyük harf yap
-                    // Sadece harf ve rakam
-                    value = value.replace(/[^A-Z0-9]/g, '');
-                    // Maximum 3 karakter
-                    value = value.substring(0, 3);
-                    e.target.value = value;
-                });
-                
-                input.addEventListener('paste', function(e) {
-                    e.preventDefault();
-                    let paste = (e.clipboardData || window.clipboardData).getData('text');
-                    paste = paste.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 3);
-                    e.target.value = paste;
-                });
-            }
+            // Bu fonksiyon artık kullanılmıyor, çünkü oda kodu manuel olarak girilmiyor.
+            // Ancak ileride tekrar gerekirse kullanılabilir.
         }
 
         // Event listeners
@@ -723,17 +798,10 @@
         document.getElementById('joinRoom').addEventListener('click', joinRoom);
         document.getElementById('leaveRoom').addEventListener('click', leaveRoom);
         
-        // Enter tuşu ile oda kodunu gönderme
-        document.getElementById('roomCodeInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                joinRoom();
-            }
-        });
-        
         // Sayfa yüklendiğinde
         window.addEventListener('load', function() {
             switchMode('broadcaster'); // Varsayılan olarak yayıncı modunda başla
-            setupRoomCodeInput(); // Input alanı için kısıtlamaları ayarla
+            // setupRoomCodeInput(); // Oda kodu girişi olmadığı için çağrılmıyor
         });
         
         // Sayfa kapatılırken kaynakları temizle

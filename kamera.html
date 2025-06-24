@@ -323,11 +323,6 @@
         <div id="viewer-section" class="section">
             <h2>👁️ Kamera İzleme</h2>
             
-            <!-- Oda kodu girişi artık gizli veya kaldırıldı, sabit "ODA1" kullanılacak -->
-            <!-- <div class="input-group">
-                <input type="text" id="roomCodeInput" placeholder="KOD" maxlength="3" style="text-transform: uppercase;">
-            </div>
-            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">3 karakterli kodu girin (örn: A3C)</p> -->
             <p style="margin: 15px 0; color: #666; font-size: 16px;">"ODA1" odasındaki yayını izlemek için "Odaya Katıl" butonuna tıklayın.</p>
             
             <div class="controls">
@@ -358,7 +353,6 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
     <script>
-        // Global değişkenler
         let localStream = null;
         let remoteStream = null;
         let currentCall = null;
@@ -382,10 +376,14 @@
                 console.log(`Peer ID kullanılıyor: ${peerId}`);
 
                 peer = new Peer(peerId, {
-                    // Ücretsiz PeerJS cloud sunucusu (prod için önerilmez, kendi sunucunuzu kurun)
-                    host: 'peerjs-server.herokuapp.com',
-                    port: 443,
-                    secure: true,
+                    // Kendi PeerJS sunucunuzun IP adresi veya alan adı
+                    // BURAYI KENDİ GENEL (PUBLIC) IP ADRESİNİZLE DEĞİŞTİRİN
+                    // ÖRNEK: '78.179.153.78'
+                    host: '78.179.153.78', 
+                    port: 9000, // Kendi sunucunuzu başlattığınız port (CMD komutunuzdaki ile aynı: --port 9000)
+                    secure: false, // Kendi sunucunuzu HTTP ile başlattığınız için 'false'
+                                  // Eğer HTTPS kullanıyorsanız 'true' ve sertifikaları ayarlamalısınız.
+                    path: '/myapp', // Kendi sunucunuzu başlattığınızdaki --path değeri (CMD komutunuzdaki ile aynı: --path /myapp)
                     config: {
                         iceServers: [
                             { urls: 'stun:stun.l.google.com:19302' },
@@ -450,13 +448,10 @@
                         peer.destroy();
                         peer = null;
                     }
-                    // Eğer ID zaten kullanımda ise, yayıncı modunda yeni bir kod deneyebiliriz
+                    // Eğer ID zaten kullanımda ise, yayıncı modunda özel uyarı göster
                     if (err.type === 'unavailable-id' && isBroadcaster) {
                         console.log('ID zaten kullanımda, yeni kod oluşturuluyor...');
-                        // Sabit ID kullanıldığı için yeni kod oluşturmaya çalışmak yerine
-                        // kullanıcıyı bilgilendirip tekrar denemesini veya başka bir yayıncının
-                        // yayını kapatmasını beklemeyi önerebiliriz.
-                        showAlert('Bu oda adı (' + DEFAULT_ROOM_ID + ') zaten kullanımda. Lütfen başka bir yayıncının yayını kapatmasını bekleyin veya daha sonra tekrar deneyin.');
+                        showAlert('Bu oda adı (' + DEFAULT_ROOM_ID + ') zaten kullanımda. Lütfen başka bir yayıncının yayını kapatmasını bekleyin veya daha sonra tekrar deneyin.', 'Oda Zaten Kullanımda');
                         updateStatus('disconnected', 'Oda dolu veya erişilemez.');
                     }
                 });
@@ -464,6 +459,7 @@
             } catch (error) {
                 console.error('Peer başlatma hatası:', error);
                 updateStatus('disconnected', 'Sistem hatası');
+                showAlert('Peer başlatma sırasında beklenmedik bir hata oluştu: ' + error.message, 'Sistem Hatası');
             }
         }
         
@@ -486,7 +482,7 @@
                 document.getElementById('viewer-section').classList.add('active');
                 isBroadcaster = false;
                 document.getElementById('roomDisplay').style.display = 'none'; // İzleyici modunda oda kodunu gizle
-                initializePeer(); // İzleyici olarak peer'ı başlat (rastgele ID ile değil, sabit ID'ye bağlanacak)
+                initializePeer(); // İzleyici olarak peer'ı başlat (varsayılan ID'ye bağlanacak)
             }
             
             updateStatus('disconnected', 'Mod değiştirildi. Sistem hazırlanıyor...');
@@ -497,16 +493,17 @@
             try {
                 currentRoom = DEFAULT_ROOM_ID; // Sabit oda adını kullan
                 if (!peer || peer.destroyed) {
-                    initializePeer(); // initializePeer zaten DEFAULT_ROOM_ID kullanıyor
+                    initializePeer(); 
                     await new Promise((resolve, reject) => {
                         peer.on('open', resolve);
                         peer.on('error', reject);
                     });
-                } else if (peer.id !== currentRoom) { // Eğer peer ID farklıysa, mevcut peer'ı yok et ve yeniden başlat
+                } else if (peer.id !== currentRoom) { 
+                    // Eğer Peer ID farklıysa, mevcut peer'ı yok et ve yeniden başlat
                     peer.destroy();
                     peer = null;
                     initializePeer();
-                     await new Promise((resolve, reject) => {
+                    await new Promise((resolve, reject) => {
                         peer.on('open', resolve);
                         peer.on('error', reject);
                     });
@@ -520,12 +517,11 @@
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 document.getElementById('localVideo').srcObject = localStream;
                 
-                // Peer'ın açık olduğunu varsayarak oda kodunu göster
                 document.getElementById('roomCode').textContent = currentRoom;
                 document.getElementById('roomDisplay').style.display = 'block';
                 
                 document.getElementById('startBroadcast').disabled = true;
-                document.getElementById('stopBroadcast').disabled = false;
+                document.getElementById('stopBroadcast').disabled = true; // Yayın durdurma da başlangıçta aktif olmalı
                 
                 updateStatus('connected', 'Yayın aktif! Oda adı: ' + currentRoom);
                 startStatsMonitoring();
@@ -533,6 +529,7 @@
             } catch (error) {
                 console.error('Yayın başlatma hatası:', error);
                 updateStatus('disconnected', 'Kamera erişim hatası: ' + error.message);
+                showAlert('Kamera erişimi reddedildi veya hata oluştu: ' + error.message + '. Lütfen kamera izinlerini kontrol edin.', 'Kamera Hatası');
                 cleanup(); // Hata durumunda temizlik yap
             }
         }
@@ -556,7 +553,7 @@
                 
                 // Eğer peer yoksa veya yok edilmişse yeniden başlat
                 if (!peer || peer.destroyed) {
-                    initializePeer(); // initializePeer zaten DEFAULT_ROOM_ID kullanıyor
+                    initializePeer(); 
                     await new Promise((resolve, reject) => { // Peer bağlantısının kurulmasını bekle
                         peer.on('open', resolve);
                         peer.on('error', reject);
@@ -569,6 +566,7 @@
                 if (!currentCall) {
                     updateStatus('disconnected', 'Yayıncı aktif değil veya bağlantı kurulamadı: ' + roomCode);
                     console.error('Call objesi oluşturulamadı.');
+                    showAlert('Belirtilen oda (' + roomCode + ') için aktif bir yayıncı bulunamadı.', 'Yayıncı Yok');
                     return;
                 }
                 
@@ -596,7 +594,7 @@
                 currentCall.on('error', function(err) {
                     console.error('Call hatası:', err);
                     updateStatus('disconnected', 'Bağlantı hatası: ' + err.type);
-                    showAlert('Yayıncıya bağlanırken hata oluştu: ' + err.type + '. Oda adını kontrol edin veya yayıncının aktif olduğundan emin olun.');
+                    showAlert('Yayıncıya bağlanırken hata oluştu: ' + err.type + '. Lütfen bağlantınızı ve yayıncının aktifliğini kontrol edin.', 'Bağlantı Hatası');
                     leaveRoom();
                 });
                 
@@ -605,7 +603,7 @@
                     if (currentCall && !streamReceived && currentCall.open) { 
                         console.log('Stream timeout: Yayıncıdan yanıt gelmedi.');
                         updateStatus('disconnected', 'Yayıncı aktif değil veya yanıt yok: ' + roomCode);
-                        showAlert('Yayıncıdan video akışı alınamadı. Yayıncının aktif olduğundan emin olun.');
+                        showAlert('Yayıncıdan video akışı alınamadı. Yayıncının aktif olduğundan emin olun.', 'Akış Hatası');
                         leaveRoom();
                     }
                 }, 10000); // 10 saniye bekle
@@ -613,7 +611,7 @@
             } catch (error) {
                 console.error('Odaya katılma hatası:', error);
                 updateStatus('disconnected', 'Sistem hatası: ' + error.message);
-                showAlert('Odaya bağlanırken kritik hata oluştu: ' + error.message);
+                showAlert('Odaya bağlanırken kritik hata oluştu: ' + error.message, 'Sistem Hatası');
                 cleanup();
             }
         }
@@ -786,10 +784,9 @@
             closeBtn.addEventListener('click', closeHandler);
         }
 
-        // Kod girişi için otomatik büyük harf ve karakter sınırı (artık kullanılmıyor ama fonksiyonu duruyor)
+        // Oda kodu girişi artık kullanılmadığı için bu fonksiyon da çağrılmıyor.
         function setupRoomCodeInput() {
-            // Bu fonksiyon artık kullanılmıyor, çünkü oda kodu manuel olarak girilmiyor.
-            // Ancak ileride tekrar gerekirse kullanılabilir.
+            // Bu fonksiyon artık kullanılmıyor.
         }
 
         // Event listeners
@@ -800,7 +797,7 @@
         
         // Sayfa yüklendiğinde
         window.addEventListener('load', function() {
-            switchMode('broadcaster'); // Varsayılan olarak yayıncı modunda başla
+            switchMode('broadcaster'); 
             // setupRoomCodeInput(); // Oda kodu girişi olmadığı için çağrılmıyor
         });
         

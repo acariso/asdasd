@@ -316,31 +316,49 @@
                 });
                 
                 peer.on('open', function(id) {
-                    console.log('Peer bağlantısı açıldı:', id);
+                    console.log('Yayıncı peer bağlantısı açıldı:', id);
                     if (isBroadcaster) {
                         currentRoom = id;
-                        updateStatus('connected', 'Yayın hazır! Beklemede...');
+                        updateStatus('connected', 'Yayın hazır! Kod: ' + currentRoom);
+                        document.getElementById('roomCode').textContent = currentRoom;
                     } else {
                         updateStatus('connected', 'Sistem hazır!');
                     }
                 });
                 
                 peer.on('call', function(call) {
+                    console.log('Gelen call:', call.peer);
                     if (isBroadcaster && localStream) {
+                        console.log('Call\'a stream ile cevap veriliyor');
                         call.answer(localStream);
                         currentCall = call;
                         updateStatus('connected', 'İzleyici bağlandı! Yayın aktif.');
                         
                         call.on('close', function() {
+                            console.log('İzleyici call\'ı kapattı');
                             updateStatus('connected', 'İzleyici ayrıldı. Yayın devam ediyor...');
                             currentCall = null;
+                        });
+                        
+                        call.on('error', function(err) {
+                            console.error('Yayıncı call hatası:', err);
                         });
                     }
                 });
                 
                 peer.on('error', function(err) {
                     console.error('Peer hatası:', err);
-                    updateStatus('disconnected', 'Bağlantı hatası: ' + err.type);
+                    if (err.type === 'unavailable-id') {
+                        // ID zaten kullanımda, yeni kod oluştur
+                        if (isBroadcaster) {
+                            currentRoom = generateRoomCode();
+                            initializePeer();
+                        } else {
+                            updateStatus('disconnected', 'Sistem hatası, tekrar deneyin');
+                        }
+                    } else {
+                        updateStatus('disconnected', 'Bağlantı hatası: ' + err.type);
+                    }
                 });
                 
             } catch (error) {
@@ -417,66 +435,99 @@
             }
             
             try {
-                updateStatus('connecting', 'Odaya bağlanıyor...');
+                updateStatus('connecting', 'Sisteme bağlanıyor...');
                 
-                if (!peer || peer.destroyed) {
-                    // İzleyici için benzersiz ID oluştur
-                    const viewerId = 'viewer-' + Math.random().toString(36).substr(2, 6);
-                    peer = new Peer(viewerId, {
-                        config: {
-                            iceServers: [
-                                { urls: 'stun:stun.l.google.com:19302' },
-                                { urls: 'stun:stun1.l.google.com:19302' }
-                            ]
-                        }
-                    });
-                    
-                    // Peer bağlantısının kurulmasını bekle
-                    await new Promise((resolve, reject) => {
-                        peer.on('open', resolve);
-                        peer.on('error', reject);
-                        setTimeout(() => reject(new Error('Timeout')), 10000);
-                    });
+                // Peer bağlantısını temizle ve yeniden oluştur
+                if (peer && !peer.destroyed) {
+                    peer.destroy();
                 }
                 
+                // İzleyici için benzersiz ID oluştur
+                const viewerId = 'viewer-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+                
+                peer = new Peer(viewerId, {
+                    config: {
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:stun1.l.google.com:19302' }
+                        ]
+                    }
+                });
+                
+                // Peer bağlantısının kurulmasını bekle
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Sistem bağlantısı zaman aştı'));
+                    }, 8000);
+                    
+                    peer.on('open', (id) => {
+                        clearTimeout(timeout);
+                        console.log('İzleyici peer açıldı:', id);
+                        resolve(id);
+                    });
+                    
+                    peer.on('error', (err) => {
+                        clearTimeout(timeout);
+                        reject(err);
+                    });
+                });
+                
+                updateStatus('connecting', 'Yayıncıya bağlanıyor: ' + roomCode);
+                
+                // Call oluştur
                 currentCall = peer.call(roomCode, null);
                 
-                if (currentCall) {
-                    currentCall.on('stream', function(stream) {
-                        remoteStream = stream;
-                        document.getElementById('remoteVideo').srcObject = stream;
-                        updateStatus('connected', 'Bağlantı başarılı! Yayın izleniyor.');
-                        
-                        document.getElementById('joinRoom').disabled = true;
-                        document.getElementById('leaveRoom').disabled = false;
-                        
-                        startStatsMonitoring();
-                    });
-                    
-                    currentCall.on('close', function() {
-                        updateStatus('disconnected', 'Yayın sonlandı.');
-                        leaveRoom();
-                    });
-                    
-                    currentCall.on('error', function(err) {
-                        console.error('Call hatası:', err);
-                        updateStatus('disconnected', 'Yayıncı bulunamadı veya bağlantı hatası');
-                    });
-                    
-                    // Bağlantı timeout'u
-                    setTimeout(() => {
-                        if (currentCall && !remoteStream) {
-                            updateStatus('disconnected', 'Kod bulunamadı: ' + roomCode);
-                            leaveRoom();
-                        }
-                    }, 5000);
-                } else {
-                    updateStatus('disconnected', 'Yayıncı bulunamadı');
+                if (!currentCall) {
+                    updateStatus('disconnected', 'Kod bulunamadı: ' + roomCode);
+                    return;
                 }
+                
+                // Call event listeners
+                let streamReceived = false;
+                
+                currentCall.on('stream', function(stream) {
+                    console.log('Stream alındı');
+                    streamReceived = true;
+                    remoteStream = stream;
+                    document.getElementById('remoteVideo').srcObject = stream;
+                    updateStatus('connected', 'Bağlantı başarılı! Yayın izleniyor.');
+                    
+                    document.getElementById('joinRoom').disabled = true;
+                    document.getElementById('leaveRoom').disabled = false;
+                    
+                    startStatsMonitoring();
+                });
+                
+                currentCall.on('close', function() {
+                    console.log('Call kapatıldı');
+                    updateStatus('disconnected', 'Yayın sonlandı.');
+                    leaveRoom();
+                });
+                
+                currentCall.on('error', function(err) {
+                    console.error('Call hatası:', err);
+                    updateStatus('disconnected', 'Bağlantı hatası: ' + err.type);
+                    leaveRoom();
+                });
+                
+                // Bağlantı timeout'u - stream gelmezse
+                setTimeout(() => {
+                    if (currentCall && !streamReceived) {
+                        console.log('Stream timeout');
+                        updateStatus('disconnected', 'Kod aktif değil: ' + roomCode);
+                        leaveRoom();
+                    }
+                }, 8000);
                 
             } catch (error) {
                 console.error('Odaya katılma hatası:', error);
-                updateStatus('disconnected', 'Bağlantı hatası: ' + error.message);
+                updateStatus('disconnected', 'Sistem hatası: ' + error.message);
+                
+                // Peer'ı temizle
+                if (peer && !peer.destroyed) {
+                    peer.destroy();
+                    peer = null;
+                }
             }
         }
         

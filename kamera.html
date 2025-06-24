@@ -376,10 +376,10 @@
                 console.log(`Peer ID kullanılıyor: ${peerId}`);
 
                 peer = new Peer(peerId, {
-                    // Kendi PeerJS sunucunuzun IP adresi veya alan adı
-                    // BURAYI KENDİ GENEL (PUBLIC) IP ADRESİNİZLE DEĞİŞTİRİN
-                    // ÖRNEK: '78.179.153.78'
-                    host: '78.179.153.78', 
+                    // Kendi PeerJS sunucunuzun YEREL (PRIVATE) IP adresi
+                    // Sadece aynı yerel ağdaki cihazlar arasında iletişim için bu IP kullanılır.
+                    // Modeminizde Port Yönlendirme yapmanıza gerek kalmaz.
+                    host: '192.168.1.108', 
                     port: 9000, // Kendi sunucunuzu başlattığınız port (CMD komutunuzdaki ile aynı: --port 9000)
                     secure: false, // Kendi sunucunuzu HTTP ile başlattığınız için 'false'
                                   // Eğer HTTPS kullanıyorsanız 'true' ve sertifikaları ayarlamalısınız.

@@ -153,6 +153,8 @@
             100% { opacity: 1; }
         }
         
+        /* Oda bilgisi artık gösterilmeyecek */
+        /*
         .room-info {
             background: rgba(103, 126, 234, 0.1);
             padding: 20px;
@@ -169,6 +171,7 @@
             margin: 10px 0;
             font-family: 'Courier New', monospace;
         }
+        */
         
         .input-group {
             margin: 15px 0;
@@ -182,7 +185,7 @@
             width: 150px;
             text-align: center;
             letter-spacing: 3px;
-            text-transform: uppercase;
+            /* text-transform: uppercase; */
             font-family: 'Courier New', monospace;
             font-weight: bold;
         }
@@ -218,17 +221,17 @@
 </head>
 <body>
     <div class="container">
-        <h1>🌍 Küresel Kamera Paylaşım Sistemi</h1>
-        <p style="margin: 15px 0; color: #666;">Telefonunuzdaki kamerayı düşük gecikmeyle dünyaya yayınlayın</p>
+        <h1>🌍 Küresel Kamera Sistemi (Yerel)</h1>
+        <p style="margin: 15px 0; color: #666;">Telefonunuzdaki kamerayı düşük gecikmeyle görüntüleyin</p>
         
         <div class="mode-selector">
-            <button class="mode-btn active" onclick="switchMode('broadcaster')">📹 Yayın Yap</button>
-            <button class="mode-btn" onclick="switchMode('viewer')">👁️ İzle</button>
+            <button class="mode-btn active" onclick="switchMode('broadcaster')">📹 Kamera Aç</button>
+            <button class="mode-btn" onclick="switchMode('viewer')">🚫 Kamera Kapat</button>
         </div>
         
-        <!-- Yayın Yapma Bölümü -->
+        <!-- Kamera Görüntüleme Bölümü -->
         <div id="broadcaster-section" class="section active">
-            <h2>📹 Kamera Yayını</h2>
+            <h2>📹 Kamera Önizlemesi</h2>
             
             <div class="quality-selector">
                 <label>Kalite: </label>
@@ -240,19 +243,20 @@
             </div>
             
             <div class="controls">
-                <button id="startBroadcast" class="control-btn">🎥 Yayını Başlat</button>
-                <button id="stopBroadcast" class="control-btn" disabled>⏹️ Yayını Durdur</button>
+                <button id="startBroadcast" class="control-btn">🎥 Kamerayı Başlat</button>
+                <button id="stopBroadcast" class="control-btn" disabled>⏹️ Kamerayı Durdur</button>
             </div>
             
             <div id="broadcastStatus" class="status disconnected">
-                📴 Yayın Kapalı
+                📴 Kamera Kapalı
             </div>
             
-            <div id="roomDisplay" class="room-info" style="display: none;">
+            <!-- Oda bilgisi artık gösterilmeyecek -->
+            <!-- <div id="roomDisplay" class="room-info" style="display: none;">
                 <h3>🔑 Oda Kodu</h3>
                 <div id="roomCode" class="room-code">YÜKLENIYOR...</div>
                 <p>Bu 3 karakterli kodu izleyici ile paylaşın</p>
-            </div>
+            </div> -->
             
             <div class="video-container">
                 <video id="localVideo" autoplay muted playsinline></video>
@@ -261,11 +265,13 @@
             <div id="broadcastStats" class="stats" style="display: none;"></div>
         </div>
         
-        <!-- İzleme Bölümü -->
+        <!-- İzleme Bölümü (Kamera Kapatma İşlevi İçin Kullanılacak) -->
         <div id="viewer-section" class="section">
-            <h2>👁️ Kamera İzleme</h2>
+            <h2>🚫 Kamera Kapalı</h2>
+            <p style="margin: 15px 0; color: #666;">Kamera şu anda aktif değil.</p>
             
-            <div class="input-group">
+            <!-- Oda kodu giriş alanı ve butonlar artık kullanılmayacak -->
+            <!-- <div class="input-group">
                 <input type="text" id="roomCodeInput" placeholder="KOD" maxlength="3" style="text-transform: uppercase;">
             </div>
             <p style="color: #666; font-size: 14px; margin-bottom: 15px;">3 karakterli kodu girin (örn: A3C)</p>
@@ -273,123 +279,53 @@
             <div class="controls">
                 <button id="joinRoom" class="control-btn">🔗 Odaya Katıl</button>
                 <button id="leaveRoom" class="control-btn" disabled>🚪 Odadan Çık</button>
-            </div>
+            </div> -->
             
             <div id="viewerStatus" class="status disconnected">
-                📱 Bağlantı Bekleniyor
+                📱 Beklemede
             </div>
             
-            <div class="video-container">
+            <!-- Remote Video artık kullanılmayacak -->
+            <!-- <div class="video-container">
                 <video id="remoteVideo" autoplay playsinline controls></video>
-            </div>
+            </div> -->
             
             <div id="viewerStats" class="stats" style="display: none;"></div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
+    <!-- PeerJS kütüphanesi artık gerekli değil, kaldırıldı -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script> -->
     <script>
         // Global değişkenler
-        let localStream = null;
-        let remoteStream = null;
-        let currentCall = null;
-        let peer = null;
-        let currentRoom = null;
-        let isBroadcaster = false;
-        let isConnected = false;
-        let statsInterval = null;
-        
-        // PeerJS başlatma
-        function initializePeer() {
-            try {
-                // 3 karakterli kod ile peer ID kullan
-                const peerId = currentRoom || generateRoomCode();
-                
-                peer = new Peer(peerId, {
-                    // Ücretsiz PeerJS cloud sunucusu
-                    config: {
-                        iceServers: [
-                            { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:stun1.l.google.com:19302' }
-                        ]
-                    }
-                });
-                
-                peer.on('open', function(id) {
-                    console.log('Yayıncı peer bağlantısı açıldı:', id);
-                    if (isBroadcaster) {
-                        currentRoom = id;
-                        updateStatus('connected', 'Yayın hazır! Kod: ' + currentRoom);
-                        document.getElementById('roomCode').textContent = currentRoom;
-                    } else {
-                        updateStatus('connected', 'Sistem hazır!');
-                    }
-                });
-                
-                peer.on('call', function(call) {
-                    console.log('Gelen call:', call.peer);
-                    if (isBroadcaster && localStream) {
-                        console.log('Call\'a stream ile cevap veriliyor');
-                        call.answer(localStream);
-                        currentCall = call;
-                        updateStatus('connected', 'İzleyici bağlandı! Yayın aktif.');
-                        
-                        call.on('close', function() {
-                            console.log('İzleyici call\'ı kapattı');
-                            updateStatus('connected', 'İzleyici ayrıldı. Yayın devam ediyor...');
-                            currentCall = null;
-                        });
-                        
-                        call.on('error', function(err) {
-                            console.error('Yayıncı call hatası:', err);
-                        });
-                    }
-                });
-                
-                peer.on('error', function(err) {
-                    console.error('Peer hatası:', err);
-                    if (err.type === 'unavailable-id') {
-                        // ID zaten kullanımda, yeni kod oluştur
-                        if (isBroadcaster) {
-                            currentRoom = generateRoomCode();
-                            initializePeer();
-                        } else {
-                            updateStatus('disconnected', 'Sistem hatası, tekrar deneyin');
-                        }
-                    } else {
-                        updateStatus('disconnected', 'Bağlantı hatası: ' + err.type);
-                    }
-                });
-                
-            } catch (error) {
-                console.error('Peer başlatma hatası:', error);
-                updateStatus('disconnected', 'Sistem hatası');
-            }
-        }
-        
+        let localStream = null; // Sadece yerel kamera akışı için
+        let statsInterval = null; // İstatistikler için
+
         // Mod değiştirme
         function switchMode(mode) {
-            // Mevcut bağlantıları temizle
-            cleanup();
+            // Mevcut kamera akışını durdur ve temizle
+            cleanupLocalStream();
             
             document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
             
             if (mode === 'broadcaster') {
-                document.querySelector('.mode-btn').classList.add('active');
+                document.querySelector('.mode-btn[onclick="switchMode(\'broadcaster\')"]').classList.add('active');
                 document.getElementById('broadcaster-section').classList.add('active');
-                isBroadcaster = true;
-            } else {
-                document.querySelectorAll('.mode-btn')[1].classList.add('active');
+                // Yayıncı (kamera açma) moduna geçildiğinde kamerayı başlat
+                startLocalCamera(); 
+            } else { // mode === 'viewer'
+                document.querySelector('.mode-btn[onclick="switchMode(\'viewer\')"]').classList.add('active');
                 document.getElementById('viewer-section').classList.add('active');
-                isBroadcaster = false;
+                // İzleyici (kamera kapatma) moduna geçildiğinde kamerayı durdur
+                stopLocalCamera();
             }
             
-            updateStatus('disconnected', 'Mod değiştirildi. Sistem hazırlanıyor...');
+            updateStatus('disconnected', 'Mod değiştirildi.');
         }
         
-        // Yayın başlatma
-        async function startBroadcast() {
+        // Yerel kamera akışını başlatma
+        async function startLocalCamera() {
             try {
                 updateStatus('connecting', 'Kamera erişimi isteniyor...');
                 
@@ -399,178 +335,35 @@
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 document.getElementById('localVideo').srcObject = localStream;
                 
-                // Yeni 3 karakterli kod ile peer başlat
-                currentRoom = generateRoomCode();
-                initializePeer();
-                
-                document.getElementById('roomCode').textContent = currentRoom;
-                document.getElementById('roomDisplay').style.display = 'block';
-                
                 document.getElementById('startBroadcast').disabled = true;
                 document.getElementById('stopBroadcast').disabled = false;
                 
-                startStatsMonitoring();
+                updateStatus('connected', 'Kamera aktif!');
+                startStatsMonitoring(); // İstatistikleri başlat
                 
             } catch (error) {
-                console.error('Yayın başlatma hatası:', error);
+                console.error('Kamera başlatma hatası:', error);
                 updateStatus('disconnected', 'Kamera erişim hatası: ' + error.message);
+                cleanupLocalStream(); // Hata durumunda temizlik yap
             }
         }
         
-        // Yayın durdurma
-        function stopBroadcast() {
-            cleanup();
-            document.getElementById('roomDisplay').style.display = 'none';
+        // Yerel kamera akışını durdurma
+        function stopLocalCamera() {
+            cleanupLocalStream();
             document.getElementById('startBroadcast').disabled = false;
             document.getElementById('stopBroadcast').disabled = true;
-            updateStatus('disconnected', 'Yayın durduruldu.');
+            updateStatus('disconnected', 'Kamera durduruldu.');
         }
-        
-        // Odaya katılma
-        async function joinRoom() {
-            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-            if (!roomCode || roomCode.length !== 3) {
-                alert('Lütfen 3 karakterli oda kodunu girin! (örn: A3C)');
-                return;
-            }
-            
-            try {
-                updateStatus('connecting', 'Sisteme bağlanıyor...');
-                
-                // Peer bağlantısını temizle ve yeniden oluştur
-                if (peer && !peer.destroyed) {
-                    peer.destroy();
-                }
-                
-                // İzleyici için benzersiz ID oluştur
-                const viewerId = 'viewer-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
-                
-                peer = new Peer(viewerId, {
-                    config: {
-                        iceServers: [
-                            { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:stun1.l.google.com:19302' }
-                        ]
-                    }
-                });
-                
-                // Peer bağlantısının kurulmasını bekle
-                await new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => {
-                        reject(new Error('Sistem bağlantısı zaman aştı'));
-                    }, 8000);
-                    
-                    peer.on('open', (id) => {
-                        clearTimeout(timeout);
-                        console.log('İzleyici peer açıldı:', id);
-                        resolve(id);
-                    });
-                    
-                    peer.on('error', (err) => {
-                        clearTimeout(timeout);
-                        reject(err);
-                    });
-                });
-                
-                updateStatus('connecting', 'Yayıncıya bağlanıyor: ' + roomCode);
-                
-                // Call oluştur
-                currentCall = peer.call(roomCode, null);
-                
-                if (!currentCall) {
-                    updateStatus('disconnected', 'Kod bulunamadı: ' + roomCode);
-                    return;
-                }
-                
-                // Call event listeners
-                let streamReceived = false;
-                
-                currentCall.on('stream', function(stream) {
-                    console.log('Stream alındı');
-                    streamReceived = true;
-                    remoteStream = stream;
-                    document.getElementById('remoteVideo').srcObject = stream;
-                    updateStatus('connected', 'Bağlantı başarılı! Yayın izleniyor.');
-                    
-                    document.getElementById('joinRoom').disabled = true;
-                    document.getElementById('leaveRoom').disabled = false;
-                    
-                    startStatsMonitoring();
-                });
-                
-                currentCall.on('close', function() {
-                    console.log('Call kapatıldı');
-                    updateStatus('disconnected', 'Yayın sonlandı.');
-                    leaveRoom();
-                });
-                
-                currentCall.on('error', function(err) {
-                    console.error('Call hatası:', err);
-                    updateStatus('disconnected', 'Bağlantı hatası: ' + err.type);
-                    leaveRoom();
-                });
-                
-                // Bağlantı timeout'u - stream gelmezse
-                setTimeout(() => {
-                    if (currentCall && !streamReceived) {
-                        console.log('Stream timeout');
-                        updateStatus('disconnected', 'Kod aktif değil: ' + roomCode);
-                        leaveRoom();
-                    }
-                }, 8000);
-                
-            } catch (error) {
-                console.error('Odaya katılma hatası:', error);
-                updateStatus('disconnected', 'Sistem hatası: ' + error.message);
-                
-                // Peer'ı temizle
-                if (peer && !peer.destroyed) {
-                    peer.destroy();
-                    peer = null;
-                }
-            }
-        }
-        
-        // Odadan çıkma
-        function leaveRoom() {
-            if (currentCall) {
-                currentCall.close();
-                currentCall = null;
-            }
-            
-            if (remoteStream) {
-                document.getElementById('remoteVideo').srcObject = null;
-                remoteStream = null;
-            }
-            
-            document.getElementById('joinRoom').disabled = false;
-            document.getElementById('leaveRoom').disabled = true;
-            
-            updateStatus('disconnected', 'Odadan çıkıldı.');
-            stopStatsMonitoring();
-        }
-        
-        // Temizlik
-        function cleanup() {
+
+        // Yerel kamera akışını temizleme
+        function cleanupLocalStream() {
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
+                document.getElementById('localVideo').srcObject = null;
                 localStream = null;
             }
-            
-            if (currentCall) {
-                currentCall.close();
-                currentCall = null;
-            }
-            
-            if (peer && !peer.destroyed) {
-                peer.destroy();
-                peer = null;
-            }
-            
-            document.getElementById('localVideo').srcObject = null;
-            document.getElementById('remoteVideo').srcObject = null;
-            
-            stopStatsMonitoring();
+            stopStatsMonitoring(); // İstatistikleri durdur
         }
         
         // Video kalite ayarları
@@ -579,7 +372,7 @@
                 video: {
                     facingMode: { ideal: 'environment' } // Arka kamera tercih et
                 },
-                audio: true
+                audio: true // Mikrofonu da dahil et (video kaydı vb. için)
             };
             
             switch (quality) {
@@ -603,42 +396,29 @@
             return constraints;
         }
         
-        // 3 karakterli oda kodu oluşturma (A3C formatı)
-        function generateRoomCode() {
-            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            const numbers = '0123456789';
-            
-            let code = '';
-            // İlk karakter: harf
-            code += letters.charAt(Math.floor(Math.random() * letters.length));
-            // İkinci karakter: rakam
-            code += numbers.charAt(Math.floor(Math.random() * numbers.length));
-            // Üçüncü karakter: harf
-            code += letters.charAt(Math.floor(Math.random() * letters.length));
-            
-            return code;
-        }
-        
         // Durum güncelleme
         function updateStatus(status, message) {
-            const statusElements = [
-                document.getElementById('broadcastStatus'),
-                document.getElementById('viewerStatus')
-            ];
+            const broadcastStatus = document.getElementById('broadcastStatus');
+            const viewerStatus = document.getElementById('viewerStatus');
             
-            statusElements.forEach(element => {
-                if (element) {
-                    element.className = 'status ' + status;
-                    element.textContent = message;
+            if (document.getElementById('broadcaster-section').classList.contains('active')) {
+                if (broadcastStatus) {
+                    broadcastStatus.className = 'status ' + status;
+                    broadcastStatus.textContent = message;
                 }
-            });
+            } else if (document.getElementById('viewer-section').classList.contains('active')) {
+                if (viewerStatus) {
+                    viewerStatus.className = 'status ' + status;
+                    viewerStatus.textContent = message;
+                }
+            }
         }
         
         // İstatistik takibi
         function startStatsMonitoring() {
-            if (statsInterval) return;
+            if (statsInterval) return; // Zaten çalışıyorsa tekrar başlatma
             
-            statsInterval = setInterval(updateStats, 2000);
+            statsInterval = setInterval(updateStats, 2000); // Her 2 saniyede bir güncelle
             document.querySelectorAll('.stats').forEach(el => el.style.display = 'block');
         }
         
@@ -656,61 +436,33 @@
             
             let statsHtml = `
                 🕐 Zaman: ${timeStr}<br>
-                📊 Durum: ${peer && !peer.destroyed ? 'Bağlı' : 'Bağlantı Yok'}<br>
-                🌐 Oda: ${currentRoom || 'Yok'}<br>
+                📊 Durum: ${localStream ? 'Aktif' : 'Kapalı'}<br>
                 📱 Cihaz: ${navigator.userAgent.includes('Mobile') ? 'Mobil' : 'Masaüstü'}<br>
-                🎥 Video: ${localStream ? 'Aktif' : 'Kapalı'}<br>
-                👥 İzleyici: ${currentCall ? 'Var' : 'Yok'}
+                🎥 Video: ${localStream ? 'Var' : 'Yok'}
             `;
             
-            document.querySelectorAll('.stats').forEach(el => {
-                el.innerHTML = statsHtml;
-            });
-        }
-        
-        // Kod girişi için otomatik büyük harf ve karakter sınırı
-        function setupRoomCodeInput() {
-            const input = document.getElementById('roomCodeInput');
-            
-            input.addEventListener('input', function(e) {
-                let value = e.target.value.toUpperCase();
-                // Sadece harf ve rakam
-                value = value.replace(/[^A-Z0-9]/g, '');
-                // Maximum 3 karakter
-                value = value.substring(0, 3);
-                e.target.value = value;
-            });
-            
-            input.addEventListener('paste', function(e) {
-                e.preventDefault();
-                let paste = (e.clipboardData || window.clipboardData).getData('text');
-                paste = paste.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 3);
-                e.target.value = paste;
-            });
-        }
-        
-        // Event listeners
-        document.getElementById('startBroadcast').addEventListener('click', startBroadcast);
-        document.getElementById('stopBroadcast').addEventListener('click', stopBroadcast);
-        document.getElementById('joinRoom').addEventListener('click', joinRoom);
-        document.getElementById('leaveRoom').addEventListener('click', leaveRoom);
-        
-        // Enter tuşu ile oda kodunu gönderme
-        document.getElementById('roomCodeInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                joinRoom();
+            // Sadece aktif olan bölüme istatistikleri yaz
+            if (document.getElementById('broadcaster-section').classList.contains('active')) {
+                document.getElementById('broadcastStats').innerHTML = statsHtml;
+            } else if (document.getElementById('viewer-section').classList.contains('active')) {
+                document.getElementById('viewerStats').innerHTML = statsHtml;
             }
-        });
+        }
+        
+        // Event listeners (PeerJS ile ilgili butonlar kaldırıldı)
+        document.getElementById('startBroadcast').addEventListener('click', startLocalCamera);
+        document.getElementById('stopBroadcast').addEventListener('click', stopLocalCamera);
         
         // Sayfa yüklendiğinde
         window.addEventListener('load', function() {
+            // Başlangıçta "Kamera Aç" modunu seç
+            switchMode('broadcaster'); 
             updateStatus('disconnected', 'Sistem hazırlanıyor...');
-            setupRoomCodeInput();
         });
         
         // Sayfa kapatılırken kaynakları temizle
         window.addEventListener('beforeunload', function() {
-            cleanup();
+            cleanupLocalStream();
         });
     </script>
 </body>

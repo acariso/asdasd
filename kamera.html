@@ -1,40 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Kamera ve Mikrofon Paylaşan</title>
+    <title>Ses Paylaşan (Sender)</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f0f8ff; color: #333; }
-        video { width: 80%; max-width: 640px; border: 2px solid #007bff; margin: 10px auto; display: block; border-radius: 8px; background-color: black; }
-        button { padding: 12px 25px; font-size: 18px; margin: 15px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease; }
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f0f8ff; }
+        button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; }
         button:hover { background-color: #0056b3; }
-        #status { margin-top: 25px; font-weight: bold; font-size: 1.1em; color: #555; }
+        #status { margin-top: 20px; font-weight: bold; color: #333; }
     </style>
 </head>
 <body>
-    <h1>Canlı Yayın (Gönderen)</h1>
-    <video id="localVideo" autoplay muted playsinline></video>
+    <h1>Ses Paylaşan (Sender)</h1>
     <div>
-        <button onclick="startStream()">Yayını Başlat</button>
+        <button onclick="startAudioStream()">Yayını Başlat</button>
     </div>
-    <div id="status">Durum: Hazır...</div>
+    <div id="status">Durum: Bekliyor...</div>
 
     <script>
-        const localVideo = document.getElementById('localVideo');
         const statusDiv = document.getElementById('status');
         let localStream;
         let peerConnection;
         let signalingChannel;
 
-        // **BURAYI KENDİ SİNYAL SUNUCUSU URL'NİZLE DEĞİŞTİRDİM!**
+        // BURAYI KENDİ SİNYAL SUNUCUSU URL'NİZLE DEĞİŞTİRİN
         const SIGNALING_SERVER_URL = "wss://8f30-2a00-1d36-283f-fe01-d0d6-34e9-2810-e5c9.ngrok-free.app";
 
-        async function startStream() {
-            statusDiv.textContent = "Kamera ve Mikrofona erişiliyor...";
+        async function startAudioStream() {
+            statusDiv.textContent = "Mikrofona erişiliyor...";
             try {
-                // Hem video hem de ses akışı isteği
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                localVideo.srcObject = localStream; // Kendi görüntümüzü göster
-                statusDiv.textContent = "Kamera ve mikrofon başlatıldı. Bağlantı bekleniyor...";
+                // Sadece ses akışı isteği
+                localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                statusDiv.textContent = "Mikrofon başlatıldı. Bağlantı bekleniyor...";
 
                 signalingChannel = new WebSocket(SIGNALING_SERVER_URL);
 
@@ -50,7 +46,6 @@
                     if (message.type === 'yourId') {
                         console.log('Kendi ID\'m:', message.id);
                     } else if (message.type === 'ready') {
-                        // Diğer taraf hazır olduğunda PeerConnection'ı oluştur ve teklifi gönder
                         createPeerConnection();
                         const offer = await peerConnection.createOffer();
                         await peerConnection.setLocalDescription(offer);
@@ -58,12 +53,10 @@
                         statusDiv.textContent = "Teklif gönderildi, cevap bekleniyor...";
 
                     } else if (message.type === 'answer' && peerConnection.currentRemoteDescription === null) {
-                        // Cevabı al ve uzak açıklamayı ayarla
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(message));
                         statusDiv.textContent = "Cevap alındı, ICE adayları bekleniyor...";
 
                     } else if (message.type === 'candidate') {
-                        // ICE adaylarını ekle
                         try {
                             await peerConnection.addIceCandidate(new RTCIceCandidate(message.candidate));
                             console.log('ICE adayı eklendi.');
@@ -80,46 +73,41 @@
 
                 signalingChannel.onerror = (error) => {
                     console.error('Sinyal sunucusu hatası:', error);
-                    statusDiv.textContent = `Sinyal sunucusu hatası: ${error.message}`;
+                    statusDiv.textContent = "Sinyal sunucusu hatası.";
                 };
 
             } catch (err) {
-                console.error('Kamera/Mikrofona erişilemedi:', err);
-                statusDiv.textContent = `Kamera/Mikrofon hatası: ${err.message}`;
+                console.error('Mikrofona erişilemedi:', err);
+                statusDiv.textContent = `Mikrofon hatası: ${err.message}`;
             }
         }
 
         function createPeerConnection() {
             const servers = {
                 iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' }, // STUN sunucusu
+                    { urls: 'stun:stun.l.google.com:19302' },
                 ]
             };
             peerConnection = new RTCPeerConnection(servers);
 
-            // Yerel medya akışını PeerConnection'a ekle (video ve ses)
             localStream.getTracks().forEach(track => {
                 peerConnection.addTrack(track, localStream);
             });
 
-            // ICE adaylarını sinyal sunucusu üzerinden gönder
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
                     signalingChannel.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
                 }
             };
 
-            // Bağlantı durumundaki değişiklikleri izle
             peerConnection.onconnectionstatechange = () => {
-                console.log('RTCPeerConnection durumu:', peerConnection.connectionState);
-                if (peerConnection.connectionState === 'connected') {
-                    statusDiv.textContent = "Bağlantı kuruldu! Canlı yayın başladı.";
-                } else if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
-                    statusDiv.textContent = `Bağlantı kesildi/başarısız: ${peerConnection.connectionState}`;
-                } else {
-                    statusDiv.textContent = `Bağlantı durumu: ${peerConnection.connectionState}`;
-                }
-            };
+                    console.log('RTCPeerConnection durumu:', peerConnection.connectionState);
+                    if (peerConnection.connectionState === 'connected') {
+                        statusDiv.textContent = "Bağlantı kuruldu! Ses yayını başladı.";
+                    } else {
+                        statusDiv.textContent = `Bağlantı durumu: ${peerConnection.connectionState}`;
+                    }
+                };
         }
     </script>
 </body>
